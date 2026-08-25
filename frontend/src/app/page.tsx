@@ -29,7 +29,14 @@ export default function HomePage() {
               <span className="text-xs text-slate-400 block -mt-1 font-medium">Smart Hospital Queue</span>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
+            <Link
+              href="/admin/hospitals"
+              className="text-xs font-bold text-purple-300 bg-purple-950/40 hover:bg-purple-900/60 border border-purple-800/40 px-3 py-1.5 rounded-lg transition hidden sm:inline-flex items-center space-x-1.5"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Super Admin</span>
+            </Link>
             <Link
               href="/login"
               className="text-sm font-semibold text-slate-300 hover:text-white transition px-4 py-2 rounded-lg hover:bg-slate-800/60"
@@ -45,6 +52,7 @@ export default function HomePage() {
           </div>
         </div>
       </header>
+
 
       {/* Hero Section */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-24">

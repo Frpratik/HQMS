@@ -20,12 +20,15 @@ export default function LoginPage() {
 
     try {
       const res = await api.auth.login(email, password);
-      if (res.user.role === "DOCTOR" || res.user.role === "DOCTOR_ASSISTANT") {
+      if (res.user.role === "SUPER_ADMIN") {
+        router.push("/admin/hospitals");
+      } else if (res.user.role === "DOCTOR" || res.user.role === "DOCTOR_ASSISTANT") {
         router.push("/doctor");
       } else {
         router.push("/reception");
       }
     } catch (err: any) {
+
       setError(err.message || "Invalid credentials. Please check and try again.");
     } finally {
       setLoading(false);
@@ -121,14 +124,14 @@ export default function LoginPage() {
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 text-center">
               Quick Demo Fill
             </p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => fillDemo("reception@hospital.com", "Recep123!")}
                 className="text-xs p-2.5 bg-slate-900/60 hover:bg-slate-700/50 border border-slate-700 rounded-lg text-slate-300 text-left transition"
               >
                 <span className="font-bold text-teal-400 block">Reception Desk</span>
-                <span className="text-[10px] text-slate-500">reception@hospital.com</span>
+                <span className="text-[10px] text-slate-500 truncate block">reception@hospital.com</span>
               </button>
               <button
                 type="button"
@@ -136,7 +139,15 @@ export default function LoginPage() {
                 className="text-xs p-2.5 bg-slate-900/60 hover:bg-slate-700/50 border border-slate-700 rounded-lg text-slate-300 text-left transition"
               >
                 <span className="font-bold text-emerald-400 block">Doctor Console</span>
-                <span className="text-[10px] text-slate-500">doctor@hospital.com</span>
+                <span className="text-[10px] text-slate-500 truncate block">doctor@hospital.com</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => fillDemo("super.admin@platform.com", "supersecurepass")}
+                className="text-xs p-2.5 bg-slate-900/60 hover:bg-slate-700/50 border border-slate-700 rounded-lg text-slate-300 text-left transition"
+              >
+                <span className="font-bold text-purple-400 block">Platform Admin</span>
+                <span className="text-[10px] text-slate-500 truncate block">super.admin@platform.com</span>
               </button>
             </div>
           </div>
@@ -145,3 +156,4 @@ export default function LoginPage() {
     </div>
   );
 }
+
