@@ -67,3 +67,30 @@ async def test_websocket_manager_broadcast():
         received = websocket.receive_json()
         assert received["event"] == "TOKEN_CALLED"
         assert received["token_display_number"] == "A-001"
+
+
+@pytest.mark.asyncio
+async def test_websocket_publisher_tenant_namespacing():
+    """Verify EventPublisher broadcasts tenant-scoped payloads to local WS and Redis Pub/Sub."""
+    from app.websockets.publisher import event_publisher
+
+    queue_id = str(uuid.uuid4())
+    hospital_id = str(uuid.uuid4())
+    client = TestClient(app)
+
+    with client.websocket_connect(f"/ws/v1/queues/{queue_id}?channel=public") as websocket:
+        greeting = websocket.receive_json()
+        assert greeting["event"] == "CONNECTED"
+
+        await event_publisher.publish_event(
+            queue_id=queue_id,
+            event_type="QUEUE_PAUSED",
+            public_data={"reason": "Emergency Case", "status": "PAUSED"},
+            hospital_id=hospital_id,
+        )
+
+        msg = websocket.receive_json()
+        assert msg["event"] == "QUEUE_PAUSED"
+        assert msg["hospital_id"] == hospital_id
+        assert msg["data"]["reason"] == "Emergency Case"
+
