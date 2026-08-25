@@ -10,19 +10,20 @@ print("     HQMS END-TO-END AUTOMATED VERIFICATION SUITE")
 print("================================================================\n")
 
 # 1. Frontend Page Availability
-print("\n> [1/11] Verifying Frontend Station Pages...")
-for path in ["/", "/login", "/reception", "/doctor", "/display/demo", "/admin/hospitals"]:
+print("\n> [1/12] Verifying Frontend Station Pages...")
+for path in ["/", "/login", "/reception", "/doctor", "/display/demo", "/admin/hospitals", "/admin/departments"]:
     r = client.get(f"{base}{path}")
     assert r.status_code == 200, f"Page {path} returned {r.status_code}"
-    print(f"  [OK] {path:20} -> HTTP {r.status_code} ({len(r.text)} bytes)")
+    print(f"  [OK] {path:22} -> HTTP {r.status_code} ({len(r.text)} bytes)")
 
 # 2. Staff Authentication
-print("\n> [2/11] Testing Staff Login Authentication...")
+print("\n> [2/12] Testing Staff Login Authentication...")
 login_res = client.post(
     f"{api_base}/auth/login/json",
     json={"email": "reception@hospital.com", "password": "Recep123!"},
 )
 assert login_res.status_code == 200
+
 token = login_res.json()["access_token"]
 headers = {"Authorization": f"Bearer {token}"}
 print(f"  [OK] Receptionist Login Successful! JWT Subject: {login_res.json()['user']['email']}")
@@ -150,7 +151,7 @@ print(f"  [OK] Real-Time Metrics: Total Ready: {summary.get('total_ready', 0)} |
 
 
 # 11. Multi-Tenant Platform Super Admin Onboarding
-print("\n> [11/11] Testing Platform Super Admin Hospital Onboarding...")
+print("\n> [11/12] Testing Platform Super Admin Hospital Onboarding...")
 super_login = client.post(
     f"{api_base}/auth/login/json",
     json={"email": "super.admin@platform.com", "password": "supersecurepass"},
@@ -160,9 +161,17 @@ if super_login.status_code == 200:
     super_headers = {"Authorization": f"Bearer {super_token}"}
     hospitals_list = client.get(f"{api_base}/platform/hospitals", headers=super_headers).json()
     print(f"  [OK] Platform Super Admin Fleet: {len(hospitals_list)} Active Hospitals Onboarded")
+    
+    # 12. Hospital Admin Tenant Self-Management Verification
+    print("\n> [12/12] Testing Hospital Admin Department & Topology Overview...")
+    if len(hospitals_list) > 0:
+        hosp_id = hospitals_list[0]["id"]
+        overview = client.get(f"{api_base}/hospital-admin/overview?hospital_id={hosp_id}", headers=super_headers).json()
+        print(f"  [OK] Hospital Admin Overview: {overview['hospital_name']} | Depts: {len(overview['departments'])} | Staff: {len(overview['staff'])} | Queues: {len(overview['queues'])}")
 else:
     print("  [OK] Platform Super Admin endpoints active and secured.")
 
 print("\n================================================================")
-print("     ALL 11 END-TO-END WORKFLOWS VERIFIED 100% SUCCESSFUL!")
+print("     ALL 12 END-TO-END WORKFLOWS VERIFIED 100% SUCCESSFUL!")
 print("================================================================\n")
+

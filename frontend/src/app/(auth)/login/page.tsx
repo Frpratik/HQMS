@@ -22,12 +22,15 @@ export default function LoginPage() {
       const res = await api.auth.login(email, password);
       if (res.user.role === "SUPER_ADMIN") {
         router.push("/admin/hospitals");
+      } else if (res.user.role === "HOSPITAL_ADMIN") {
+        router.push("/admin/departments");
       } else if (res.user.role === "DOCTOR" || res.user.role === "DOCTOR_ASSISTANT") {
         router.push("/doctor");
       } else {
         router.push("/reception");
       }
     } catch (err: any) {
+
 
       setError(err.message || "Invalid credentials. Please check and try again.");
     } finally {
