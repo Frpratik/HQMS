@@ -18,6 +18,8 @@ from app.domain.queue.state_machine import QueueStateMachine, InvalidStateTransi
 from app.domain.queue.dispatcher import QueueDispatcher
 from app.domain.queue.rejoin_policy import RejoinPolicyEngine
 from app.domain.queue.eta_calculator import ETACalculator
+from app.websockets.publisher import event_publisher
+
 
 
 def utc_now() -> datetime:
@@ -544,3 +546,32 @@ class QueueDomainService:
         )
         self.db.add(event)
         return event
+
+    async def _broadcast_event(
+        self,
+        queue_id: uuid.UUID,
+        event_type: QueueEventType,
+        token: Optional[QueueToken] = None,
+        extra_data: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        public_data = {
+            "event_type": event_type.value,
+            "timestamp": utc_now().isoformat(),
+        }
+        if token:
+            public_data.update({
+                "token_display_number": token.token_display_number,
+                "status": token.status.value,
+                "operational_position": token.operational_position,
+                "estimated_wait_min": token.estimated_wait_min,
+                "estimated_wait_max": token.estimated_wait_max,
+            })
+        if extra_data:
+            public_data.update(extra_data)
+
+        await event_publisher.publish_event(
+            queue_id=str(queue_id),
+            event_type=event_type.value,
+            public_data=public_data,
+        )
+
