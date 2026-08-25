@@ -45,10 +45,12 @@ class QueueStateMachine:
         },
         TokenStatus.CALLED: {
             TokenStatus.SERVING,
+            TokenStatus.COMPLETED,  # 1-click complete directly from called
             TokenStatus.MISSED,
             TokenStatus.SKIPPED,
             TokenStatus.READY,  # Return to ready on recall reset
         },
+
         TokenStatus.SERVING: {
             TokenStatus.COMPLETED,
             TokenStatus.CANCELLED,
