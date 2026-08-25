@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Activity, Lock, Mail, ArrowRight, AlertCircle } from "lucide-react";
+import { Activity, Lock, Mail, ArrowRight, AlertCircle, Building2, Stethoscope, Users, ShieldCheck } from "lucide-react";
 import { api } from "@/lib/api";
 
 export default function LoginPage() {
@@ -30,8 +30,6 @@ export default function LoginPage() {
         router.push("/reception");
       }
     } catch (err: any) {
-
-
       setError(err.message || "Invalid credentials. Please check and try again.");
     } finally {
       setLoading(false);
@@ -44,32 +42,32 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 text-white">
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 text-slate-900 font-sans antialiased selection:bg-emerald-500 selection:text-white">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <Link href="/" className="inline-flex items-center space-x-3 mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-teal-500/20">
-            <Activity className="w-7 h-7 text-slate-950 font-bold" />
+        <Link href="/" className="inline-flex items-center space-x-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-black shadow-xs">
+            <Activity className="w-5 h-5" />
           </div>
-          <span className="text-2xl font-extrabold tracking-tight text-white">HQMS Staff Portal</span>
+          <span className="text-xl font-extrabold tracking-tight text-slate-950">HQMS Clinical</span>
         </Link>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-100">Sign in to your station</h2>
-        <p className="mt-2 text-sm text-slate-400">
-          Access Reception Desk, Doctor Consultation Console, or Admin Settings
+        <h2 className="text-xl font-bold tracking-tight text-slate-900">Sign in to your station</h2>
+        <p className="mt-1 text-xs text-slate-500">
+          Enter credentials to access clinical consoles and administrative dashboards
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4">
-        <div className="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-8 backdrop-blur-xl shadow-2xl">
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md px-4">
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm">
           {error && (
-            <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm flex items-start space-x-3">
-              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+            <div className="mb-5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-start space-x-2.5">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                 Work Email Address
               </label>
               <div className="relative">
@@ -82,13 +80,13 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@hospital.com"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition text-sm"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs font-semibold transition"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                 Password
               </label>
               <div className="relative">
@@ -101,7 +99,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition text-sm"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs font-semibold transition"
                 />
               </div>
             </div>
@@ -109,7 +107,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-4 bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-slate-950 font-bold rounded-xl shadow-lg shadow-teal-500/25 transition duration-200 flex items-center justify-center space-x-2 text-sm mt-2"
+              className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-xs transition duration-150 flex items-center justify-center space-x-2 text-xs mt-2"
             >
               {loading ? (
                 <span>Authenticating...</span>
@@ -123,42 +121,57 @@ export default function LoginPage() {
           </form>
 
           {/* Demo Quick-Fill Credentials */}
-          <div className="mt-8 pt-6 border-t border-slate-700/80">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 text-center">
-              Quick Demo Fill
+          <div className="mt-6 pt-5 border-t border-slate-100">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2.5 text-center">
+              Quick Demo Sign-In
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => fillDemo("reception@hospital.com", "Recep123!")}
-                className="text-xs p-2.5 bg-slate-900/60 hover:bg-slate-700/50 border border-slate-700 rounded-xl text-slate-300 text-left transition"
+                className="text-xs p-2.5 bg-slate-50 hover:bg-blue-50/60 border border-slate-200 hover:border-blue-300 rounded-xl text-left transition"
               >
-                <span className="font-bold text-teal-400 block">Reception Desk</span>
-                <span className="text-[10px] text-slate-500 truncate block">reception@hospital.com</span>
+                <div className="flex items-center space-x-1.5 font-bold text-blue-800">
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Receptionist</span>
+                </div>
+                <span className="text-[10px] text-slate-500 font-mono block mt-0.5">reception@hospital.com</span>
               </button>
+
               <button
                 type="button"
                 onClick={() => fillDemo("doctor@hospital.com", "Doctor123!")}
-                className="text-xs p-2.5 bg-slate-900/60 hover:bg-slate-700/50 border border-slate-700 rounded-xl text-slate-300 text-left transition"
+                className="text-xs p-2.5 bg-slate-50 hover:bg-emerald-50/60 border border-slate-200 hover:border-emerald-300 rounded-xl text-left transition"
               >
-                <span className="font-bold text-emerald-400 block">Doctor Console</span>
-                <span className="text-[10px] text-slate-500 truncate block">doctor@hospital.com</span>
+                <div className="flex items-center space-x-1.5 font-bold text-emerald-800">
+                  <Stethoscope className="w-3.5 h-3.5" />
+                  <span>Doctor Desk</span>
+                </div>
+                <span className="text-[10px] text-slate-500 font-mono block mt-0.5">doctor@hospital.com</span>
               </button>
+
               <button
                 type="button"
                 onClick={() => fillDemo("admin@apex.com", "Admin123!")}
-                className="text-xs p-2.5 bg-slate-900/60 hover:bg-slate-700/50 border border-slate-700 rounded-xl text-slate-300 text-left transition"
+                className="text-xs p-2.5 bg-slate-50 hover:bg-amber-50/60 border border-slate-200 hover:border-amber-300 rounded-xl text-left transition"
               >
-                <span className="font-bold text-amber-400 block">Hospital Admin</span>
-                <span className="text-[10px] text-slate-500 truncate block">admin@apex.com</span>
+                <div className="flex items-center space-x-1.5 font-bold text-amber-800">
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>Hospital Admin</span>
+                </div>
+                <span className="text-[10px] text-slate-500 font-mono block mt-0.5">admin@apex.com</span>
               </button>
+
               <button
                 type="button"
                 onClick={() => fillDemo("super.admin@platform.com", "supersecurepass")}
-                className="text-xs p-2.5 bg-slate-900/60 hover:bg-slate-700/50 border border-slate-700 rounded-xl text-slate-300 text-left transition"
+                className="text-xs p-2.5 bg-slate-50 hover:bg-purple-50/60 border border-slate-200 hover:border-purple-300 rounded-xl text-left transition"
               >
-                <span className="font-bold text-purple-400 block">Platform Super Admin</span>
-                <span className="text-[10px] text-slate-500 truncate block">super.admin@platform.com</span>
+                <div className="flex items-center space-x-1.5 font-bold text-purple-800">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Super Admin</span>
+                </div>
+                <span className="text-[10px] text-slate-500 font-mono block mt-0.5">super.admin@platform.com</span>
               </button>
             </div>
           </div>
@@ -166,6 +179,4 @@ export default function LoginPage() {
       </div>
     </div>
   );
-
 }
-

@@ -128,29 +128,23 @@ export default function HospitalAdminDepartmentsPage() {
     }
   };
 
-  const handleInviteStaff = async (e: React.FormEvent) => {
+  const handleCreateStaff = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!staffForm.full_name || !staffForm.email || !staffForm.password) return;
     try {
       setActionLoading(true);
-      await api.hospitalAdmin.inviteStaff({
-        full_name: staffForm.full_name,
-        email: staffForm.email,
-        password: staffForm.password,
-        phone_number: staffForm.phone_number || undefined,
-        role: staffForm.role,
-      });
+      await api.hospitalAdmin.inviteStaff(staffForm);
       setStaffForm({
         full_name: "",
         email: "",
         password: "",
         phone_number: "",
-        role: "DOCTOR" as UserRole,
+        role: "DOCTOR",
       });
       setIsStaffModalOpen(false);
       fetchOverview();
     } catch (err: any) {
-      alert(`Error inviting staff: ${err.message}`);
+      alert(`Error creating staff member: ${err.message}`);
     } finally {
       setActionLoading(false);
     }
@@ -158,16 +152,18 @@ export default function HospitalAdminDepartmentsPage() {
 
   const handleCreateQueue = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!queueForm.department_id || !queueForm.name || !queueForm.prefix) return;
+    const deptId = queueForm.department_id || overview?.departments[0]?.id;
+    if (!queueForm.name || !queueForm.prefix || !deptId) {
+      alert("Please select a department and fill in queue name and prefix.");
+      return;
+    }
     try {
       setActionLoading(true);
       await api.hospitalAdmin.createQueue({
-        department_id: queueForm.department_id,
+        ...queueForm,
+        department_id: deptId,
         doctor_user_id: queueForm.doctor_user_id || undefined,
         room_id: queueForm.room_id || undefined,
-        name: queueForm.name,
-        prefix: queueForm.prefix.toUpperCase(),
-        default_consult_time_min: Number(queueForm.default_consult_time_min),
       });
       setQueueForm({
         department_id: overview?.departments[0]?.id || "",
@@ -180,7 +176,7 @@ export default function HospitalAdminDepartmentsPage() {
       setIsQueueModalOpen(false);
       fetchOverview();
     } catch (err: any) {
-      alert(`Error creating queue: ${err.message}`);
+      alert(`Error deploying queue: ${err.message}`);
     } finally {
       setActionLoading(false);
     }
@@ -192,35 +188,37 @@ export default function HospitalAdminDepartmentsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Top Header */}
-      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 px-6 py-3.5 flex items-center justify-between">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased selection:bg-emerald-500 selection:text-white">
+      {/* ============================================================ */}
+      {/* TOP NAVIGATION BAR                                           */}
+      {/* ============================================================ */}
+      <header className="bg-white border-b border-slate-200/90 sticky top-0 z-40 px-6 py-3.5 flex items-center justify-between shadow-xs">
         <div className="flex items-center space-x-4">
           <Link href="/" className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-teal-500 flex items-center justify-center font-black text-slate-950 shadow-md shadow-teal-500/20">
-              <Building2 className="w-5 h-5 text-slate-950" />
+            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black shadow-xs">
+              <Building2 className="w-5 h-5" />
             </div>
             <div>
-              <span className="font-extrabold text-lg tracking-tight text-white">
-                {overview?.hospital_name || "HQMS Hospital Admin"}
+              <span className="font-extrabold text-base tracking-tight text-slate-950">
+                {overview?.hospital_name || "Hospital Admin"}
               </span>
-              <span className="text-xs bg-teal-500/20 text-teal-300 font-semibold px-2 py-0.5 rounded-md ml-2">
-                Tenant: {overview?.hospital_slug || "..."}
+              <span className="text-xs bg-emerald-50 text-emerald-800 font-bold px-2 py-0.5 rounded-md ml-2 border border-emerald-200">
+                Operations Console
               </span>
             </div>
           </Link>
         </div>
 
         <div className="flex items-center space-x-3">
-          <div className="hidden sm:flex items-center space-x-2 text-xs font-mono text-slate-400 bg-slate-800/60 px-3 py-1.5 rounded-xl border border-slate-700">
-            <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+          <div className="hidden sm:flex items-center space-x-2 text-xs font-mono text-slate-700 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+            <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
             <span>{user?.email || "admin@hospital.com"}</span>
           </div>
 
           <button
             onClick={fetchOverview}
-            title="Refresh"
-            className="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 text-slate-300 transition"
+            title="Refresh Facility Topology"
+            className="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl border border-slate-200 text-slate-700 transition"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
@@ -228,322 +226,319 @@ export default function HospitalAdminDepartmentsPage() {
           <button
             onClick={handleLogout}
             title="Sign Out"
-            className="p-2 bg-slate-800 hover:bg-rose-900/40 rounded-xl border border-slate-700 text-slate-400 hover:text-rose-300 transition"
+            className="p-2 bg-slate-100 hover:bg-rose-50 rounded-xl border border-slate-200 text-slate-600 hover:text-rose-700 transition"
           >
             <LogOut className="w-4 h-4" />
           </button>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
-        {/* Top Header & Tab Controls */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
-          <div>
-            <h1 className="text-2xl font-black tracking-tight text-white">
-              Hospital Operations Console
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1">
-              Configure OPD clinical departments, register doctors, assign consultation rooms, and deploy live queues.
-            </p>
+      {/* ============================================================ */}
+      {/* MAIN WORKSPACE                                               */}
+      {/* ============================================================ */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+        {/* KPI Strip */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+              <span>Departments</span>
+              <Layers className="w-4 h-4 text-emerald-700" />
+            </span>
+            <div className="my-2">
+              <span className="text-3xl font-mono font-black text-slate-950 tracking-tight tabular-nums">
+                {overview?.departments.length || 0}
+              </span>
+            </div>
+            <span className="text-xs text-slate-500 font-medium">Clinical specialties</span>
           </div>
 
-          {/* Tab Selector */}
-          <div className="flex items-center space-x-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
-            <button
-              onClick={() => setActiveTab("departments")}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center space-x-2 ${
-                activeTab === "departments"
-                  ? "bg-teal-500 text-slate-950 shadow-md"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <Layers className="w-4 h-4" />
-              <span>Departments ({overview?.departments.length || 0})</span>
-            </button>
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+              <span>Examination Rooms</span>
+              <DoorOpen className="w-4 h-4 text-blue-700" />
+            </span>
+            <div className="my-2">
+              <span className="text-3xl font-mono font-black text-blue-900 tracking-tight tabular-nums">
+                {overview?.rooms.length || 0}
+              </span>
+            </div>
+            <span className="text-xs text-slate-500 font-medium">Active clinical cabins</span>
+          </div>
 
-            <button
-              onClick={() => setActiveTab("staff")}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center space-x-2 ${
-                activeTab === "staff"
-                  ? "bg-teal-500 text-slate-950 shadow-md"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              <span>Staff ({overview?.staff.length || 0})</span>
-            </button>
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+              <span>Hospital Staff</span>
+              <Users className="w-4 h-4 text-purple-700" />
+            </span>
+            <div className="my-2">
+              <span className="text-3xl font-mono font-black text-purple-900 tracking-tight tabular-nums">
+                {overview?.staff.length || 0}
+              </span>
+            </div>
+            <span className="text-xs text-slate-500 font-medium">Doctors & Receptionists</span>
+          </div>
 
-            <button
-              onClick={() => setActiveTab("queues")}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center space-x-2 ${
-                activeTab === "queues"
-                  ? "bg-teal-500 text-slate-950 shadow-md"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <Activity className="w-4 h-4" />
-              <span>Queues ({overview?.queues.length || 0})</span>
-            </button>
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+              <span>Active OPD Queues</span>
+              <Activity className="w-4 h-4 text-teal-700" />
+            </span>
+            <div className="my-2">
+              <span className="text-3xl font-mono font-black text-teal-900 tracking-tight tabular-nums">
+                {overview?.queues.length || 0}
+              </span>
+            </div>
+            <span className="text-xs text-slate-500 font-medium">Real-time patient queues</span>
           </div>
         </div>
 
-        {/* TAB 1: DEPARTMENTS & ROOMS */}
-        {activeTab === "departments" && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white flex items-center space-x-2">
-                <Layers className="w-5 h-5 text-teal-400" />
-                <span>Clinical OPD Departments & Rooms</span>
-              </h2>
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => setIsRoomModalOpen(true)}
-                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold rounded-xl text-xs flex items-center space-x-1.5 transition"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add Room</span>
-                </button>
-                <button
-                  onClick={() => setIsDeptModalOpen(true)}
-                  className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold rounded-xl text-xs flex items-center space-x-1.5 transition shadow-lg shadow-teal-500/20"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>New Department</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {overview?.departments.map((dept) => {
-                const deptRooms = overview.rooms.filter((r) => r.department_id === dept.id);
-                const deptQueues = overview.queues.filter((q) => q.department_id === dept.id);
-                return (
-                  <div
-                    key={dept.id}
-                    className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 hover:border-teal-500/40 transition space-y-4 shadow-lg"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-extrabold text-white text-base">{dept.name}</h3>
-                        <span className="text-xs font-mono font-bold text-teal-400 bg-teal-500/10 px-2 py-0.5 rounded border border-teal-500/20">
-                          Code: {dept.code}
-                        </span>
-                      </div>
-                      <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400">
-                        <Layers className="w-4 h-4" />
-                      </div>
-                    </div>
-
-                    {/* Room Chips */}
-                    <div className="space-y-1.5">
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-                        Consultation Rooms ({deptRooms.length})
-                      </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {deptRooms.length === 0 ? (
-                          <span className="text-xs text-slate-500 italic">No rooms added yet</span>
-                        ) : (
-                          deptRooms.map((r) => (
-                            <span
-                              key={r.id}
-                              className="text-xs bg-slate-950 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-800 font-mono"
-                            >
-                              Room {r.room_number} ({r.name})
-                            </span>
-                          ))
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Associated Queues */}
-                    <div className="border-t border-slate-800/80 pt-3 flex items-center justify-between text-xs text-slate-400">
-                      <span>Active Queues:</span>
-                      <span className="font-bold text-white">{deptQueues.length}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: DOCTORS & STAFF */}
-        {activeTab === "staff" && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white flex items-center space-x-2">
-                <Users className="w-5 h-5 text-teal-400" />
-                <span>Clinical Staff Directory</span>
-              </h2>
+        {/* Tab Navigation & Action Bar */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-5 shadow-sm space-y-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <div className="flex space-x-2">
               <button
-                onClick={() => setIsStaffModalOpen(true)}
-                className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold rounded-xl text-xs flex items-center space-x-1.5 transition shadow-lg shadow-teal-500/20"
+                onClick={() => setActiveTab("departments")}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                  activeTab === "departments"
+                    ? "bg-slate-900 text-white shadow-xs"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
               >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Invite Staff Member</span>
+                Departments & Rooms
+              </button>
+              <button
+                onClick={() => setActiveTab("staff")}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                  activeTab === "staff"
+                    ? "bg-slate-900 text-white shadow-xs"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                Staff Directory
+              </button>
+              <button
+                onClick={() => setActiveTab("queues")}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                  activeTab === "queues"
+                    ? "bg-slate-900 text-white shadow-xs"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                Live OPD Queues
               </button>
             </div>
 
-            <div className="bg-slate-900/70 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-950/80 text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800">
+            <div className="flex items-center space-x-2">
+              {activeTab === "departments" && (
+                <>
+                  <button
+                    onClick={() => setIsDeptModalOpen(true)}
+                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center space-x-1.5 shadow-xs transition"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Department</span>
+                  </button>
+                  <button
+                    onClick={() => setIsRoomModalOpen(true)}
+                    className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 font-bold rounded-xl text-xs flex items-center space-x-1.5 transition"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Room</span>
+                  </button>
+                </>
+              )}
+              {activeTab === "staff" && (
+                <button
+                  onClick={() => setIsStaffModalOpen(true)}
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center space-x-1.5 shadow-xs transition"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Staff Member</span>
+                </button>
+              )}
+              {activeTab === "queues" && (
+                <button
+                  onClick={() => setIsQueueModalOpen(true)}
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center space-x-1.5 shadow-xs transition"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Deploy New Queue</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* TAB 1: DEPARTMENTS & ROOMS */}
+          {activeTab === "departments" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {overview?.departments.map((dept) => (
+                <div
+                  key={dept.id}
+                  className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-extrabold text-slate-900 text-base">{dept.name}</span>
+                      <span className="text-xs font-mono font-bold bg-slate-200 text-slate-800 px-2 py-0.5 rounded-md">
+                        {dept.code}
+                      </span>
+                    </div>
+                    <span className="text-xs text-slate-500 font-medium block mb-3">
+                      Specialty Department
+                    </span>
+
+                    {/* Associated Rooms */}
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                        Assigned Consultation Rooms
+                      </span>
+                      {overview.rooms.filter((r) => r.department_id === dept.id).length === 0 ? (
+                        <div className="text-xs text-slate-400 italic">No rooms assigned yet</div>
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5">
+                          {overview.rooms
+                            .filter((r) => r.department_id === dept.id)
+                            .map((r) => (
+                              <span
+                                key={r.id}
+                                className="text-xs font-mono bg-white border border-slate-200 text-slate-700 px-2.5 py-1 rounded-lg"
+                              >
+                                Room {r.room_number} · {r.name}
+                              </span>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* TAB 2: STAFF DIRECTORY */}
+          {activeTab === "staff" && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-slate-800">
+                <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
                   <tr>
-                    <th className="px-6 py-4">Full Name</th>
-                    <th className="px-6 py-4">Work Email</th>
-                    <th className="px-6 py-4">Role</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4">Registered Date</th>
+                    <th className="py-3 px-4">Staff Member</th>
+                    <th className="py-3 px-4">Role</th>
+                    <th className="py-3 px-4">Phone</th>
+                    <th className="py-3 px-4">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-slate-100">
                   {overview?.staff.map((s) => (
-                    <tr key={s.id} className="hover:bg-slate-800/30 transition">
-                      <td className="px-6 py-4 font-bold text-white flex items-center space-x-2">
-                        {s.role === "DOCTOR" ? (
-                          <Stethoscope className="w-4 h-4 text-emerald-400" />
-                        ) : s.role === "HOSPITAL_ADMIN" ? (
-                          <Shield className="w-4 h-4 text-purple-400" />
-                        ) : (
-                          <UserCheck className="w-4 h-4 text-blue-400" />
-                        )}
-                        <span>{s.full_name}</span>
+                    <tr key={s.id} className="hover:bg-slate-50/80 transition">
+                      <td className="py-3.5 px-4">
+                        <div className="font-bold text-slate-950">{s.full_name}</div>
+                        <div className="text-xs font-mono text-slate-500">{s.email}</div>
                       </td>
-                      <td className="px-6 py-4 text-xs font-mono text-slate-300">{s.email}</td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
-                            s.role === "DOCTOR"
-                              ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/20"
-                              : s.role === "HOSPITAL_ADMIN"
-                              ? "bg-purple-500/10 text-purple-300 border-purple-500/20"
-                              : "bg-blue-500/10 text-blue-300 border-blue-500/20"
-                          }`}
-                        >
+                      <td className="py-3.5 px-4">
+                        <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-800 border border-slate-200">
                           {s.role}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                          ACTIVE
-                        </span>
+                      <td className="py-3.5 px-4 text-xs font-mono text-slate-600">
+                        {s.phone_number || "—"}
                       </td>
-                      <td className="px-6 py-4 text-xs font-mono text-slate-400">
-                        {new Date(s.created_at).toLocaleDateString()}
+                      <td className="py-3.5 px-4">
+                        <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                          Active
+                        </span>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* TAB 3: LIVE QUEUES */}
-        {activeTab === "queues" && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white flex items-center space-x-2">
-                <Activity className="w-5 h-5 text-teal-400" />
-                <span>Live Outpatient Queues</span>
-              </h2>
-              <button
-                onClick={() => setIsQueueModalOpen(true)}
-                className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold rounded-xl text-xs flex items-center space-x-1.5 transition shadow-lg shadow-teal-500/20"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Deploy New Queue</span>
-              </button>
+          {/* TAB 3: LIVE OPD QUEUES */}
+          {activeTab === "queues" && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-slate-800">
+                <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                  <tr>
+                    <th className="py-3 px-4">Queue Name</th>
+                    <th className="py-3 px-4">Prefix</th>
+                    <th className="py-3 px-4">Department</th>
+                    <th className="py-3 px-4">Pacing Target</th>
+                    <th className="py-3 px-4">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {overview?.queues.map((q) => (
+                    <tr key={q.id} className="hover:bg-slate-50/80 transition">
+                      <td className="py-3.5 px-4 font-bold text-slate-950">{q.name}</td>
+                      <td className="py-3.5 px-4 font-mono font-black text-emerald-800">
+                        {q.prefix}
+                      </td>
+                      <td className="py-3.5 px-4 text-xs font-medium text-slate-600">
+                        {overview.departments.find((d) => d.id === q.department_id)?.name || "General"}
+                      </td>
+                      <td className="py-3.5 px-4 text-xs font-mono font-bold text-slate-700">
+                        {q.default_consult_time_min} mins
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                          {q.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {overview?.queues.map((q) => (
-                <div
-                  key={q.id}
-                  className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 hover:border-teal-500/40 transition space-y-3 shadow-lg"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-extrabold text-white text-base">{q.name}</h3>
-                      <span className="text-xs font-mono font-bold text-teal-400">
-                        Prefix: {q.prefix} | Sequence: #{q.current_sequence}
-                      </span>
-                    </div>
-                    <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                      {q.status}
-                    </span>
-                  </div>
-
-                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs space-y-1.5">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Department:</span>
-                      <span className="font-bold text-slate-300">{q.department_name}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Assigned Doctor:</span>
-                      <span className="font-bold text-emerald-400">{q.doctor_name || "Unassigned"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Consultation Room:</span>
-                      <span className="font-bold text-slate-300">Room {q.room_number || "N/A"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Pacing Pace:</span>
-                      <span className="font-bold text-teal-300">{q.default_consult_time_min} mins/pt</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </main>
 
-      {/* MODAL: ADD DEPARTMENT */}
+      {/* ============================================================ */}
+      {/* MODAL: ADD DEPARTMENT                                        */}
+      {/* ============================================================ */}
       {isDeptModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <h2 className="text-lg font-black text-white flex items-center space-x-2">
-              <Layers className="w-5 h-5 text-teal-400" />
-              <span>Add OPD Clinical Department</span>
-            </h2>
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-6 shadow-xl animate-fade-in text-slate-900">
+            <h3 className="text-lg font-extrabold text-slate-900 mb-1">Add Department</h3>
+            <p className="text-xs text-slate-500 mb-4">Create a clinical department specialty</p>
             <form onSubmit={handleCreateDepartment} className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Department Name</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Department Name *</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Pediatrics OPD"
+                  placeholder="e.g. Cardiology"
                   value={deptForm.name}
                   onChange={(e) => setDeptForm((prev) => ({ ...prev, name: e.target.value }))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:ring-2 focus:ring-teal-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Department Code</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Department Code *</label>
                 <input
                   type="text"
                   required
-                  placeholder="PED"
+                  placeholder="CRD"
                   value={deptForm.code}
                   onChange={(e) => setDeptForm((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm font-mono text-teal-400 uppercase focus:ring-2 focus:ring-teal-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold uppercase text-slate-900 focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-800">
+              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsDeptModalOpen(false)}
-                  className="px-3.5 py-2 text-xs font-bold text-slate-400 hover:text-white"
+                  className="px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold rounded-xl text-xs"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs"
                 >
-                  {actionLoading ? "Creating..." : "Save Department"}
+                  {actionLoading ? "Saving..." : "Create"}
                 </button>
               </div>
             </form>
@@ -551,21 +546,21 @@ export default function HospitalAdminDepartmentsPage() {
         </div>
       )}
 
-      {/* MODAL: ADD ROOM */}
+      {/* ============================================================ */}
+      {/* MODAL: ADD ROOM                                              */}
+      {/* ============================================================ */}
       {isRoomModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <h2 className="text-lg font-black text-white flex items-center space-x-2">
-              <DoorOpen className="w-5 h-5 text-teal-400" />
-              <span>Add Consultation Room</span>
-            </h2>
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-6 shadow-xl animate-fade-in text-slate-900">
+            <h3 className="text-lg font-extrabold text-slate-900 mb-1">Add Examination Room</h3>
+            <p className="text-xs text-slate-500 mb-4">Add a clinical cabin to a department</p>
             <form onSubmit={handleCreateRoom} className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Target Department</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Department *</label>
                 <select
                   value={roomForm.department_id}
                   onChange={(e) => setRoomForm((prev) => ({ ...prev, department_id: e.target.value }))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-teal-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                 >
                   {overview?.departments.map((d) => (
                     <option key={d.id} value={d.id}>
@@ -575,41 +570,40 @@ export default function HospitalAdminDepartmentsPage() {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Room Number</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Room / Cabin Number *</label>
                 <input
                   type="text"
                   required
-                  placeholder="201"
+                  placeholder="101"
                   value={roomForm.room_number}
                   onChange={(e) => setRoomForm((prev) => ({ ...prev, room_number: e.target.value }))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:ring-2 focus:ring-teal-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Room Label / Name</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Room Display Name</label>
                 <input
                   type="text"
-                  required
                   placeholder="Consultation Cabin A"
                   value={roomForm.name}
                   onChange={(e) => setRoomForm((prev) => ({ ...prev, name: e.target.value }))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:ring-2 focus:ring-teal-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-800">
+              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsRoomModalOpen(false)}
-                  className="px-3.5 py-2 text-xs font-bold text-slate-400 hover:text-white"
+                  className="px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold rounded-xl text-xs"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs"
                 >
-                  {actionLoading ? "Creating..." : "Save Room"}
+                  {actionLoading ? "Saving..." : "Create Room"}
                 </button>
               </div>
             </form>
@@ -617,74 +611,73 @@ export default function HospitalAdminDepartmentsPage() {
         </div>
       )}
 
-      {/* MODAL: INVITE STAFF */}
+      {/* ============================================================ */}
+      {/* MODAL: ADD STAFF MEMBER                                      */}
+      {/* ============================================================ */}
       {isStaffModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <h2 className="text-lg font-black text-white flex items-center space-x-2">
-              <Users className="w-5 h-5 text-teal-400" />
-              <span>Invite Clinical Staff</span>
-            </h2>
-            <form onSubmit={handleInviteStaff} className="space-y-3">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-6 shadow-xl animate-fade-in text-slate-900">
+            <h3 className="text-lg font-extrabold text-slate-900 mb-1">Add Staff Account</h3>
+            <p className="text-xs text-slate-500 mb-4">Create physician or receptionist login</p>
+            <form onSubmit={handleCreateStaff} className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Full Name</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Full Name *</label>
                 <input
                   type="text"
                   required
-                  placeholder="Dr. Sunita Rao"
+                  placeholder="Dr. Ananya Roy"
                   value={staffForm.full_name}
                   onChange={(e) => setStaffForm((prev) => ({ ...prev, full_name: e.target.value }))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:ring-2 focus:ring-teal-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Work Email</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Email *</label>
                 <input
                   type="email"
                   required
-                  placeholder="sunita@hospital.com"
+                  placeholder="doctor@hospital.com"
                   value={staffForm.email}
                   onChange={(e) => setStaffForm((prev) => ({ ...prev, email: e.target.value }))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:ring-2 focus:ring-teal-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Initial Password</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Initial Password *</label>
                 <input
                   type="password"
                   required
                   placeholder="Minimum 6 characters"
                   value={staffForm.password}
                   onChange={(e) => setStaffForm((prev) => ({ ...prev, password: e.target.value }))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:ring-2 focus:ring-teal-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Staff Role</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Role *</label>
                 <select
                   value={staffForm.role}
                   onChange={(e) => setStaffForm((prev) => ({ ...prev, role: e.target.value as UserRole }))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-teal-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                 >
-                  <option value="DOCTOR">Doctor (Consultation Console)</option>
-                  <option value="RECEPTIONIST">Receptionist (Walk-in Desk)</option>
-                  <option value="DOCTOR_ASSISTANT">Doctor Assistant</option>
+                  <option value="DOCTOR">Doctor</option>
+                  <option value="RECEPTIONIST">Receptionist</option>
                 </select>
               </div>
-              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-800">
+              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsStaffModalOpen(false)}
-                  className="px-3.5 py-2 text-xs font-bold text-slate-400 hover:text-white"
+                  className="px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold rounded-xl text-xs"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs"
                 >
-                  {actionLoading ? "Inviting..." : "Create Staff Account"}
+                  {actionLoading ? "Saving..." : "Create Account"}
                 </button>
               </div>
             </form>
@@ -692,57 +685,45 @@ export default function HospitalAdminDepartmentsPage() {
         </div>
       )}
 
-      {/* MODAL: CREATE QUEUE */}
+      {/* ============================================================ */}
+      {/* MODAL: DEPLOY NEW QUEUE                                       */}
+      {/* ============================================================ */}
       {isQueueModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <h2 className="text-lg font-black text-white flex items-center space-x-2">
-              <Activity className="w-5 h-5 text-teal-400" />
-              <span>Deploy New Live Queue</span>
-            </h2>
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-6 shadow-xl animate-fade-in text-slate-900">
+            <h3 className="text-lg font-extrabold text-slate-900 mb-1">Deploy Live Queue</h3>
+            <p className="text-xs text-slate-500 mb-4">Set up a live consultation queue</p>
             <form onSubmit={handleCreateQueue} className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Queue Name</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Queue Name *</label>
                 <input
                   type="text"
                   required
-                  placeholder="Dr. Rao Pediatrics OPD"
+                  placeholder="Cardiology Morning OPD"
                   value={queueForm.name}
                   onChange={(e) => setQueueForm((prev) => ({ ...prev, name: e.target.value }))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:ring-2 focus:ring-teal-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Token Prefix</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="PED"
-                    value={queueForm.prefix}
-                    onChange={(e) => setQueueForm((prev) => ({ ...prev, prefix: e.target.value.toUpperCase() }))}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm font-mono text-teal-400 uppercase focus:ring-2 focus:ring-teal-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Pacing (Mins)</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={60}
-                    value={queueForm.default_consult_time_min}
-                    onChange={(e) => setQueueForm((prev) => ({ ...prev, default_consult_time_min: Number(e.target.value) }))}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:ring-2 focus:ring-teal-500"
-                  />
-                </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Token Prefix *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="CRD"
+                  value={queueForm.prefix}
+                  onChange={(e) => setQueueForm((prev) => ({ ...prev, prefix: e.target.value.toUpperCase() }))}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold uppercase text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Department</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Department</label>
                 <select
                   value={queueForm.department_id}
                   onChange={(e) => setQueueForm((prev) => ({ ...prev, department_id: e.target.value }))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-teal-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                 >
+                  <option value="">-- Select Department --</option>
                   {overview?.departments.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.name} ({d.code})
@@ -751,11 +732,11 @@ export default function HospitalAdminDepartmentsPage() {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Assigned Doctor</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Assigned Doctor</label>
                 <select
                   value={queueForm.doctor_user_id}
                   onChange={(e) => setQueueForm((prev) => ({ ...prev, doctor_user_id: e.target.value }))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-teal-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                 >
                   <option value="">-- Select Doctor (Optional) --</option>
                   {overview?.staff
@@ -767,35 +748,18 @@ export default function HospitalAdminDepartmentsPage() {
                     ))}
                 </select>
               </div>
-              <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Consultation Room</label>
-                <select
-                  value={queueForm.room_id}
-                  onChange={(e) => setQueueForm((prev) => ({ ...prev, room_id: e.target.value }))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-teal-500"
-                >
-                  <option value="">-- Select Room (Optional) --</option>
-                  {overview?.rooms
-                    .filter((r) => !queueForm.department_id || r.department_id === queueForm.department_id)
-                    .map((r) => (
-                      <option key={r.id} value={r.id}>
-                        Room {r.room_number} - {r.name}
-                      </option>
-                    ))}
-                </select>
-              </div>
-              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-800">
+              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsQueueModalOpen(false)}
-                  className="px-3.5 py-2 text-xs font-bold text-slate-400 hover:text-white"
+                  className="px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold rounded-xl text-xs"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs"
                 >
                   {actionLoading ? "Deploying..." : "Deploy Live Queue"}
                 </button>
