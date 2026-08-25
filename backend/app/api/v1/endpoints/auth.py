@@ -40,6 +40,7 @@ async def login(
     access_token = create_access_token(
         subject=str(user.id),
         role=user.role.value,
+        hospital_id=str(user.hospital_id) if user.hospital_id else None,
     )
 
     return {
@@ -76,7 +77,9 @@ async def login_json(
     access_token = create_access_token(
         subject=str(user.id),
         role=user.role.value,
+        hospital_id=str(user.hospital_id) if user.hospital_id else None,
     )
+
 
     return {
         "access_token": access_token,

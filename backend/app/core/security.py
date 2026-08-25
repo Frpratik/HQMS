@@ -20,19 +20,26 @@ def get_password_hash(password: str) -> str:
 def create_access_token(
     subject: str | Any,
     role: str | None = None,
+    hospital_id: str | None = None,
+    hospital_slug: str | None = None,
     expires_delta: timedelta | None = None,
 ) -> str:
-    """Create a signed JWT access token with role claims."""
+    """Create a signed JWT access token with role and tenant claims."""
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     
-    to_encode = {"exp": expire, "sub": str(subject)}
+    to_encode: dict[str, Any] = {"exp": expire, "sub": str(subject)}
     if role:
         to_encode["role"] = role
+    if hospital_id:
+        to_encode["hospital_id"] = str(hospital_id)
+    if hospital_slug:
+        to_encode["hospital_slug"] = str(hospital_slug)
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
+
 
 
 def decode_access_token(token: str) -> dict[str, Any]:

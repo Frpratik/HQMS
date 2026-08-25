@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.core.database import get_db
-from app.models import Queue, QueueToken, StaffUser, UserRole, TokenStatus
+from app.models import Queue, QueueToken, StaffUser, UserRole, TokenStatus, Branch, Department
 from app.schemas.queue import (
     QueueTokenOut,
     QueuePauseRequest,
@@ -28,6 +28,17 @@ async def call_next_patient(
     """
     Doctor 1-click action: Completes currently serving patient and calls the next eligible patient in queue.
     """
+    # Verify tenant ownership
+    if current_user.role != UserRole.SUPER_ADMIN:
+        queue = await db.scalar(
+            select(Queue)
+            .join(Queue.department)
+            .join(Department.branch)
+            .where(Queue.id == queue_id, Branch.hospital_id == current_user.hospital_id)
+        )
+        if not queue:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Queue not found in this hospital")
+
     service = QueueDomainService(db)
     next_token = await service.call_next(
         queue_id=queue_id,
@@ -38,6 +49,7 @@ async def call_next_patient(
     if next_token:
         await db.refresh(next_token)
     return next_token
+
 
 
 @router.post("/tokens/{token_id}/start-serving", response_model=QueueTokenOut, summary="Doctor Starts Consultation")

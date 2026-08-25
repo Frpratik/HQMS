@@ -74,3 +74,18 @@ def require_roles(*allowed_roles: UserRole) -> Callable:
         return current_user
 
     return role_checker
+
+
+async def get_current_tenant_id(
+    current_user: StaffUser = Depends(get_current_active_user),
+) -> uuid.UUID:
+    """
+    Resolves the strict Hospital Tenant UUID from the authenticated staff user.
+    """
+    if not current_user.hospital_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Staff account is not associated with an active hospital tenant.",
+        )
+    return uuid.UUID(str(current_user.hospital_id)) if isinstance(current_user.hospital_id, str) else current_user.hospital_id
+

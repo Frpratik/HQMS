@@ -21,14 +21,24 @@ class Settings(BaseSettings):
     POSTGRES_USER: str = "hqms_admin"
     POSTGRES_PASSWORD: str = "hqms_secure_password"
     POSTGRES_DB: str = "hqms_db"
-    DATABASE_URL: str = "sqlite+aiosqlite:///./hqms_local.db"
+    DATABASE_URL: str | None = None
+
 
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def assemble_db_connection(cls, v: str | None, info) -> str:
         if isinstance(v, str) and v:
             return v
+        data = info.data
+        server = data.get("POSTGRES_SERVER", "localhost")
+        if server and server != "localhost":
+            user = data.get("POSTGRES_USER", "hqms_admin")
+            password = data.get("POSTGRES_PASSWORD", "hqms_secure_password")
+            port = data.get("POSTGRES_PORT", 5432)
+            db = data.get("POSTGRES_DB", "hqms_db")
+            return f"postgresql+asyncpg://{user}:{password}@{server}:{port}/{db}"
         return "sqlite+aiosqlite:///./hqms_local.db"
+
 
 
     # Redis Configuration
