@@ -145,6 +145,9 @@ export default function ReceptionDashboardPage() {
     return true;
   });
 
+  const isPaused = summary?.queue.status === "PAUSED";
+
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       {/* Top Navbar */}
@@ -171,7 +174,11 @@ export default function ReceptionDashboardPage() {
           <select
             value={selectedQueueId || ""}
             onChange={(e) => setSelectedQueueId(e.target.value)}
-            className="bg-slate-800 border border-slate-700 text-sm font-semibold rounded-xl px-4 py-2 text-teal-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            className={`border text-sm font-semibold rounded-xl px-4 py-2 focus:outline-none focus:ring-2 ${
+              isPaused
+                ? "bg-amber-950/60 border-amber-500/60 text-amber-300 focus:ring-amber-500"
+                : "bg-slate-800 border-slate-700 text-teal-300 focus:ring-teal-500"
+            }`}
           >
             {queues.map((q) => (
               <option key={q.id} value={q.id}>
@@ -179,6 +186,13 @@ export default function ReceptionDashboardPage() {
               </option>
             ))}
           </select>
+
+          {isPaused && (
+            <span className="hidden sm:inline-flex items-center space-x-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-extrabold px-3 py-1 rounded-lg animate-pulse">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              <span>DOCTOR PAUSED</span>
+            </span>
+          )}
 
           <button
             onClick={() => fetchSummary()}
@@ -200,21 +214,53 @@ export default function ReceptionDashboardPage() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
+        {/* DOCTOR UNAVAILABLE / QUEUE PAUSED ALERT BANNER */}
+        {isPaused && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-950/70 via-amber-900/40 to-slate-900 border border-amber-500/50 shadow-xl shadow-amber-500/10 flex items-start sm:items-center justify-between gap-4 text-amber-200 animate-fade-in">
+            <div className="flex items-center space-x-3.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-400">
+                <AlertTriangle className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <span className="font-extrabold text-sm sm:text-base text-amber-300 block uppercase tracking-tight">
+                  DOCTOR CURRENTLY UNAVAILABLE / CONSULTATIONS PAUSED
+                </span>
+                <p className="text-xs sm:text-sm text-amber-200/90 mt-0.5">
+                  The consulting physician has temporarily paused this queue. Arriving walk-in patients have been notified of extended wait times.
+                </p>
+              </div>
+            </div>
+            <div className="shrink-0 hidden md:block text-right font-mono text-xs text-amber-400/80 bg-slate-950/60 px-3 py-1.5 rounded-lg border border-amber-500/20">
+              Queue Status: PAUSED
+            </div>
+          </div>
+        )}
+
         {/* KPI & Live Serving Header */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Card 1: Currently Serving */}
           <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center justify-between">
               <span>Now Serving</span>
-              <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
+              {isPaused ? (
+                <span className="w-2 h-2 rounded-full bg-amber-400" />
+              ) : (
+                <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
+              )}
             </span>
             <div className="my-2">
-              <span className="text-3xl font-black text-blue-400 tracking-tight">
-                {summary?.currently_serving_token?.token_display_number || "—"}
+              <span className={`text-3xl font-black tracking-tight ${isPaused ? "text-amber-400" : "text-blue-400"}`}>
+                {isPaused
+                  ? "PAUSED"
+                  : summary?.currently_serving_token?.token_display_number || "—"}
               </span>
             </div>
             <span className="text-xs text-slate-400">
-              {summary?.currently_serving_token ? "Consultation in progress" : "Doctor waiting for patient"}
+              {isPaused
+                ? "Doctor attending urgent matter"
+                : summary?.currently_serving_token
+                ? "Consultation in progress"
+                : "Doctor waiting for patient"}
             </span>
           </div>
 

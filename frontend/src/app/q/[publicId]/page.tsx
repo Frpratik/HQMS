@@ -156,22 +156,26 @@ export default function PatientLiveQueuePage() {
       <main className="max-w-md w-full mx-auto p-4 space-y-4">
         {/* CRITICAL STATE BANNER: When CALLED */}
         {isCalled && (
-          <div className="p-5 rounded-3xl bg-gradient-to-r from-teal-500 to-emerald-400 text-slate-950 shadow-2xl shadow-teal-500/30 animate-bounce">
-            <div className="flex items-center space-x-3 mb-2">
-              <BellRing className="w-6 h-6 animate-spin" />
-              <span className="font-black text-lg uppercase tracking-tight">
-                IT IS YOUR TURN NOW!
-              </span>
+          <div className="py-3 px-4 rounded-2xl bg-gradient-to-r from-teal-500 via-emerald-400 to-teal-400 text-slate-950 shadow-lg shadow-teal-500/20 border border-teal-300/40 animate-fade-in">
+            <div className="flex items-center space-x-2.5">
+              <div className="w-8 h-8 rounded-xl bg-slate-950/10 flex items-center justify-center shrink-0">
+                <BellRing className="w-4 h-4 text-slate-950" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="font-extrabold text-sm uppercase tracking-tight block leading-tight">
+                  IT IS YOUR TURN NOW!
+                </span>
+                <p className="text-xs font-bold text-slate-900 leading-snug">
+                  Please proceed into{" "}
+                  <span className="underline decoration-2">
+                    {tokenView.room_number || "Doctor Consultation Room"}
+                  </span>
+                </p>
+              </div>
             </div>
-            <p className="text-sm font-bold text-slate-900">
-              Please proceed immediately into{" "}
-              <span className="underline decoration-2">
-                {tokenView.room_number || "Doctor Consultation Room"}
-              </span>
-              .
-            </p>
           </div>
         )}
+
 
         {/* PRIMARY TOKEN CARD */}
         <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden backdrop-blur-xl">
