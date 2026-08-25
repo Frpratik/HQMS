@@ -15,26 +15,21 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480  # 8 hours for staff sessions
 
-    # PostgreSQL Database Configuration
+    # Database Configuration (SQLite local standalone / PostgreSQL in Docker)
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_PORT: int = 5432
     POSTGRES_USER: str = "hqms_admin"
     POSTGRES_PASSWORD: str = "hqms_secure_password"
     POSTGRES_DB: str = "hqms_db"
-    DATABASE_URL: str | None = None
+    DATABASE_URL: str = "sqlite+aiosqlite:///./hqms_local.db"
 
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def assemble_db_connection(cls, v: str | None, info) -> str:
         if isinstance(v, str) and v:
             return v
-        data = info.data
-        user = data.get("POSTGRES_USER", "hqms_admin")
-        password = data.get("POSTGRES_PASSWORD", "hqms_secure_password")
-        server = data.get("POSTGRES_SERVER", "localhost")
-        port = data.get("POSTGRES_PORT", 5432)
-        db = data.get("POSTGRES_DB", "hqms_db")
-        return f"postgresql+asyncpg://{user}:{password}@{server}:{port}/{db}"
+        return "sqlite+aiosqlite:///./hqms_local.db"
+
 
     # Redis Configuration
     REDIS_HOST: str = "localhost"

@@ -477,8 +477,13 @@ class QueueDomainService:
                 .order_by(QueuePause.paused_at.desc())
             )
             if open_pause and open_pause.expected_resume_at:
-                diff = (open_pause.expected_resume_at - utc_now()).total_seconds() / 60.0
+                resume_at = open_pause.expected_resume_at
+                if resume_at.tzinfo is None:
+                    resume_at = resume_at.replace(tzinfo=timezone.utc)
+                now = utc_now()
+                diff = (resume_at - now).total_seconds() / 60.0
                 pause_remaining = max(1, int(diff))
+
 
         # Fetch active tokens
         active_tokens = await self._get_active_tokens(queue_id)

@@ -47,12 +47,15 @@ async def issue_walk_in_token(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot issue token for a closed queue")
 
     # 2. Find or create patient
+    h_id = uuid.UUID(str(current_user.hospital_id)) if current_user.hospital_id else queue.id
+    b_id = uuid.UUID(str(current_user.branch_id)) if current_user.branch_id else None
+    
     patient = None
     if walkin_in.patient_phone:
         patient = await db.scalar(
             select(Patient).where(
                 and_(
-                    Patient.hospital_id == current_user.hospital_id,
+                    Patient.hospital_id == h_id,
                     Patient.phone_number == walkin_in.patient_phone.strip(),
                 )
             )
@@ -60,10 +63,10 @@ async def issue_walk_in_token(
 
     if not patient:
         patient = Patient(
-            hospital_id=current_user.hospital_id,
+            hospital_id=h_id,
             full_name=walkin_in.patient_name.strip(),
             phone_number=walkin_in.patient_phone.strip() if walkin_in.patient_phone else None,
-            gender=walkin_in.patient_gender,
+            gender=walkin_in.patient_gender or Gender.UNSPECIFIED,
         )
         db.add(patient)
         await db.flush()
@@ -71,8 +74,8 @@ async def issue_walk_in_token(
     # 3. Create Visit
     visit = Visit(
         patient_id=patient.id,
-        hospital_id=current_user.hospital_id,
-        branch_id=current_user.branch_id,
+        hospital_id=h_id,
+        branch_id=b_id,
         doctor_user_id=queue.doctor_user_id,
         notes=walkin_in.notes,
     )
@@ -83,6 +86,7 @@ async def issue_walk_in_token(
     service = QueueDomainService(db)
     token = await service.create_token(
         queue_id=queue.id,
+
         visit_id=visit.id,
         patient_id=patient.id,
         priority=walkin_in.priority,
