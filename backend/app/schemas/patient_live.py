@@ -12,6 +12,14 @@ class PatientLiveTokenView(BaseModel):
     status: TokenStatus
     priority: PriorityLevel
 
+    # Tenant Branding
+    hospital_name: Optional[str] = None
+    hospital_slug: Optional[str] = None
+    hospital_logo_url: Optional[str] = None
+    hospital_primary_color: Optional[str] = "#0d9488"
+    hospital_accent_color: Optional[str] = "#14b8a6"
+    hospital_tagline: Optional[str] = None
+
     # Queue & OPD Context
     queue_id: uuid.UUID
     queue_name: str
@@ -19,6 +27,7 @@ class PatientLiveTokenView(BaseModel):
     doctor_name: Optional[str] = None
     department_name: str
     room_number: Optional[str] = None
+
 
     # Live Queue Position & Wait Predictions
     currently_serving_token_number: Optional[str] = None

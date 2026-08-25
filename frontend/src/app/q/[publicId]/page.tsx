@@ -133,24 +133,30 @@ export default function PatientLiveQueuePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 text-white flex flex-col font-sans pb-12">
       {/* Mobile Top App Bar */}
-      <header className="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md px-5 py-4 flex items-center justify-between sticky top-0 z-30">
-        <div className="flex items-center space-x-2.5">
-          <div className="w-8 h-8 rounded-lg bg-teal-500 flex items-center justify-center font-bold text-slate-950 shadow-md shadow-teal-500/20">
-            <Activity className="w-4 h-4" />
+      <header className="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md px-5 py-3.5 flex items-center justify-between sticky top-0 z-30">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center font-bold text-slate-950 shadow-md shadow-teal-500/20">
+            <Activity className="w-4 h-4 text-slate-950 font-bold" />
           </div>
-          <span className="font-extrabold text-base tracking-tight text-white">
-            HQMS Live Turn
-          </span>
+          <div>
+            <span className="font-extrabold text-sm tracking-tight text-white block leading-tight">
+              {tokenView.hospital_name || "Apex Multi-Specialty Hospital"}
+            </span>
+            <span className="text-[11px] text-teal-400 font-semibold block">
+              {tokenView.department_name}
+            </span>
+          </div>
         </div>
 
         <button
           onClick={fetchToken}
           title="Refresh Live Status"
-          className="p-2 bg-slate-800/80 hover:bg-slate-700 rounded-xl text-slate-300 transition"
+          className="p-2 bg-slate-800/80 hover:bg-slate-700 rounded-xl text-slate-300 transition border border-slate-700"
         >
-          <RefreshCw className="w-4 h-4" />
+          <RefreshCw className="w-3.5 h-3.5" />
         </button>
       </header>
+
 
       {/* Main Responsive Container */}
       <main className="max-w-md w-full mx-auto p-4 space-y-4">

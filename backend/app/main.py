@@ -81,7 +81,16 @@ async def lifespan(app: FastAPI):
                 role=UserRole.SUPER_ADMIN,
                 is_active=True,
             )
-            session.add_all([doctor, receptionist, super_admin])
+            hospital_admin_user = StaffUser(
+                hospital_id=hospital.id,
+                branch_id=branch.id,
+                email="admin@apex.com",
+                hashed_password=get_password_hash("Admin123!"),
+                full_name="Apex Hospital Administrator",
+                role=UserRole.HOSPITAL_ADMIN,
+                is_active=True,
+            )
+            session.add_all([doctor, receptionist, super_admin, hospital_admin_user])
             await session.flush()
 
             card_queue = Queue(
@@ -95,9 +104,9 @@ async def lifespan(app: FastAPI):
             )
             session.add(card_queue)
             await session.commit()
-            logger.info("Demo data seeded successfully! Demo login: doctor@hospital.com / Doctor123!, reception@hospital.com / Recep123!, or super.admin@platform.com / supersecurepass")
+            logger.info("Demo data seeded successfully! Demo logins: doctor@hospital.com / Doctor123!, reception@hospital.com / Recep123!, super.admin@platform.com / supersecurepass, or admin@apex.com / Admin123!")
 
-        # Also ensure super admin exists if DB was already partially seeded
+        # Also ensure super admin and hospital admin exist if DB was already partially seeded
         existing_super = await session.scalar(select(StaffUser).where(StaffUser.email == "super.admin@platform.com"))
         if not existing_super:
             super_user = StaffUser(
@@ -111,7 +120,26 @@ async def lifespan(app: FastAPI):
             await session.commit()
             logger.info("Seeded super.admin@platform.com")
 
+        existing_hosp_admin = await session.scalar(select(StaffUser).where(StaffUser.email == "admin@apex.com"))
+        if not existing_hosp_admin:
+            hosp = await session.scalar(select(Hospital).limit(1))
+            if hosp:
+                hosp_branch = await session.scalar(select(Branch).where(Branch.hospital_id == hosp.id).limit(1))
+                hosp_admin_user = StaffUser(
+                    hospital_id=hosp.id,
+                    branch_id=hosp_branch.id if hosp_branch else None,
+                    email="admin@apex.com",
+                    hashed_password=get_password_hash("Admin123!"),
+                    full_name="Apex Hospital Administrator",
+                    role=UserRole.HOSPITAL_ADMIN,
+                    is_active=True,
+                )
+                session.add(hosp_admin_user)
+                await session.commit()
+                logger.info("Seeded admin@apex.com")
+
     yield
+
 
     # Shutdown tasks
     logger.info("Shutting down HQMS Backend Service...")

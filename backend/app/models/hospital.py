@@ -22,10 +22,15 @@ class Hospital(Base):
     slug: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
     address: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    logo_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    primary_color: Mapped[Optional[str]] = mapped_column(String(20), default="#0d9488", nullable=True)
+    accent_color: Mapped[Optional[str]] = mapped_column(String(20), default="#14b8a6", nullable=True)
+    tagline: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, nullable=False
     )
+
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )

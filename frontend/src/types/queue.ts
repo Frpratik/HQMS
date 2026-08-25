@@ -95,12 +95,19 @@ export interface PatientLiveTokenView {
   sequence_number: number;
   status: TokenStatus;
   priority: PriorityLevel;
+  hospital_name?: string;
+  hospital_slug?: string;
+  hospital_logo_url?: string;
+  hospital_primary_color?: string;
+  hospital_accent_color?: string;
+  hospital_tagline?: string;
   queue_id: string;
   queue_name: string;
   queue_status: QueueStatus;
   doctor_name?: string;
   department_name: string;
   room_number?: string;
+
   currently_serving_token_number?: string;
   currently_called_token_number?: string;
   patients_ahead: number;

@@ -108,12 +108,38 @@ async def _resolve_patient_live_view(token: QueueToken, db: AsyncSession) -> Pat
     else:
         action_prompt = f"You are #{patients_ahead + 1} in line. Relax comfortably; we will alert you when your turn approaches."
 
+    # Fetch Hospital and Branding
+    hospital_name = None
+    hospital_slug = None
+    hospital_logo_url = None
+    hospital_primary_color = "#0d9488"
+    hospital_accent_color = "#14b8a6"
+    hospital_tagline = None
+
+    if department:
+        branch = await db.scalar(select(Branch).where(Branch.id == department.branch_id))
+        if branch:
+            hospital = await db.scalar(select(Hospital).where(Hospital.id == branch.hospital_id))
+            if hospital:
+                hospital_name = hospital.name
+                hospital_slug = hospital.slug
+                hospital_logo_url = hospital.logo_url
+                hospital_primary_color = hospital.primary_color or "#0d9488"
+                hospital_accent_color = hospital.accent_color or "#14b8a6"
+                hospital_tagline = hospital.tagline
+
     return PatientLiveTokenView(
         public_id=token.public_id,
         token_display_number=token.token_display_number,
         sequence_number=token.sequence_number,
         status=token.status,
         priority=token.priority,
+        hospital_name=hospital_name,
+        hospital_slug=hospital_slug,
+        hospital_logo_url=hospital_logo_url,
+        hospital_primary_color=hospital_primary_color,
+        hospital_accent_color=hospital_accent_color,
+        hospital_tagline=hospital_tagline,
         queue_id=queue.id,
         queue_name=queue.name,
         queue_status=queue.status,
@@ -137,6 +163,7 @@ async def _resolve_patient_live_view(token: QueueToken, db: AsyncSession) -> Pat
         serving_at=token.serving_at,
         completed_at=token.completed_at,
     )
+
 
 
 @router.get("/tokens/{public_id}", response_model=PatientLiveTokenView, summary="Get Live Patient Token Status")

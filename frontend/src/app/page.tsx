@@ -8,9 +8,11 @@ import {
   Tv,
   Smartphone,
   ShieldCheck,
+  Building2,
   Clock,
   ArrowRight,
 } from "lucide-react";
+
 
 export default function HomePage() {
   return (
@@ -29,7 +31,14 @@ export default function HomePage() {
               <span className="text-xs text-slate-400 block -mt-1 font-medium">Smart Hospital Queue</span>
             </div>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2.5">
+            <Link
+              href="/admin/departments"
+              className="text-xs font-bold text-amber-300 bg-amber-950/40 hover:bg-amber-900/60 border border-amber-800/40 px-3 py-1.5 rounded-lg transition hidden sm:inline-flex items-center space-x-1.5"
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              <span>Hospital Admin</span>
+            </Link>
             <Link
               href="/admin/hospitals"
               className="text-xs font-bold text-purple-300 bg-purple-950/40 hover:bg-purple-900/60 border border-purple-800/40 px-3 py-1.5 rounded-lg transition hidden sm:inline-flex items-center space-x-1.5"
@@ -43,6 +52,7 @@ export default function HomePage() {
             >
               Staff Sign In
             </Link>
+
             <Link
               href="/reception"
               className="text-sm font-semibold bg-teal-500 hover:bg-teal-400 text-slate-950 px-4 py-2 rounded-lg shadow-lg shadow-teal-500/25 transition duration-200"
