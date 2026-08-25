@@ -74,7 +74,14 @@ async def lifespan(app: FastAPI):
                 full_name="Priya Patel",
                 role=UserRole.RECEPTIONIST,
             )
-            session.add_all([doctor, receptionist])
+            super_admin = StaffUser(
+                email="super.admin@platform.com",
+                hashed_password=get_password_hash("supersecurepass"),
+                full_name="Global Super Admin",
+                role=UserRole.SUPER_ADMIN,
+                is_active=True,
+            )
+            session.add_all([doctor, receptionist, super_admin])
             await session.flush()
 
             card_queue = Queue(
@@ -88,9 +95,24 @@ async def lifespan(app: FastAPI):
             )
             session.add(card_queue)
             await session.commit()
-            logger.info("Demo data seeded successfully! Demo login: doctor@hospital.com / Doctor123! or reception@hospital.com / Recep123!")
+            logger.info("Demo data seeded successfully! Demo login: doctor@hospital.com / Doctor123!, reception@hospital.com / Recep123!, or super.admin@platform.com / supersecurepass")
+
+        # Also ensure super admin exists if DB was already partially seeded
+        existing_super = await session.scalar(select(StaffUser).where(StaffUser.email == "super.admin@platform.com"))
+        if not existing_super:
+            super_user = StaffUser(
+                email="super.admin@platform.com",
+                hashed_password=get_password_hash("supersecurepass"),
+                full_name="Global Super Admin",
+                role=UserRole.SUPER_ADMIN,
+                is_active=True,
+            )
+            session.add(super_user)
+            await session.commit()
+            logger.info("Seeded super.admin@platform.com")
 
     yield
+
     # Shutdown tasks
     logger.info("Shutting down HQMS Backend Service...")
 

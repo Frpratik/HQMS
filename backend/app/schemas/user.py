@@ -26,11 +26,12 @@ class UserLogin(BaseModel):
 
 class UserOut(UserBase):
     id: uuid.UUID
-    hospital_id: uuid.UUID
+    hospital_id: Optional[uuid.UUID] = None
     branch_id: Optional[uuid.UUID] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
 
 
 class TokenResponse(BaseModel):
