@@ -1,0 +1,46 @@
+import uuid
+from datetime import datetime
+from typing import Optional
+from pydantic import BaseModel, EmailStr, ConfigDict, Field
+from app.models.enums import UserRole
+
+
+class UserBase(BaseModel):
+    email: EmailStr
+    full_name: str = Field(..., min_length=2, max_length=255)
+    phone_number: Optional[str] = Field(None, max_length=50)
+    role: UserRole = UserRole.RECEPTIONIST
+    is_active: bool = True
+
+
+class UserCreate(UserBase):
+    hospital_id: uuid.UUID
+    branch_id: Optional[uuid.UUID] = None
+    password: str = Field(..., min_length=8, max_length=100)
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class UserOut(UserBase):
+    id: uuid.UUID
+    hospital_id: uuid.UUID
+    branch_id: Optional[uuid.UUID] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in_minutes: int
+    user: UserOut
+
+
+class TokenPayload(BaseModel):
+    sub: Optional[str] = None
+    role: Optional[str] = None
+    exp: Optional[int] = None
