@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import health, auth, hospitals, queues, reception, doctor
+from app.api.v1.endpoints import health, auth, hospitals, queues, reception, doctor, patient_live
 
 api_router = APIRouter()
 
@@ -20,5 +20,9 @@ api_router.include_router(reception.router, prefix="/reception", tags=["Receptio
 
 # Doctor & Assistant Console
 api_router.include_router(doctor.router, prefix="/doctor", tags=["Doctor Console"])
+
+# Patient Live Virtual Waiting Room
+api_router.include_router(patient_live.router, prefix="/patient", tags=["Patient Live"])
+
 
 
