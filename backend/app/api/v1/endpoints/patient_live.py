@@ -5,6 +5,8 @@ from sqlalchemy import select, and_
 
 from app.core.database import get_db
 from app.models import (
+    Hospital,
+    Branch,
     QueueToken,
     Queue,
     Department,
@@ -13,6 +15,7 @@ from app.models import (
     TokenStatus,
     QueueStatus,
 )
+
 from app.schemas.patient_live import PatientLiveTokenView
 from app.domain.queue.service import QueueDomainService
 from app.domain.queue.eta_calculator import ETACalculator
