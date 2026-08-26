@@ -1,49 +1,49 @@
-# 🏥 HQMS — Multi-Tenant Smart Hospital Virtual Queue & SaaS Platform
+# 🏥 HQMS — Multi-Tenant Smart Hospital Virtual Queue & Healthcare SaaS
 
 [![Multi-Tenant SaaS](https://img.shields.io/badge/Architecture-Multi--Tenant_B2B_SaaS-purple.svg)](https://github.com/Frpratik/HQMS)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.111.0-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js-14.2-black.svg?logo=next.js&logoColor=white)](https://nextjs.org)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791.svg?logo=postgresql&logoColor=white)](https://www.postgresql.org)
-[![Redis](https://img.shields.io/badge/Redis-7-DC382D.svg?logo=redis&logoColor=white)](https://redis.io)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC.svg?logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
-[![Tests](https://img.shields.io/badge/Tests-32%20Passed-success.svg)](#-testing--verification)
+[![Tests](https://img.shields.io/badge/Tests-34%20Passed%20(100%25)-success.svg)](#-automated-test-suite)
 
-> **Enterprise-grade Multi-Tenant B2B SaaS platform for hospital virtual queueing, automated 1-click tenant onboarding, statistical wait predictions, clinical pacing, zero-install mobile live queue tracking, and namespaced real-time WebSocket synchronization.**
-
----
-
-## 🌟 Core Product Highlights
-
-- **🏢 Multi-Tenant Data & Security Isolation**: Run hundreds of hospitals on a single shared codebase with absolute tenant data isolation, independent token sequence counters, and scoped RBAC boundaries.
-- **🌐 Platform Super Admin Console**: 1-click atomic hospital provisioning, instant admin credential generation, tenant suspension controls, and real-time fleet health telemetry.
-- **🏥 Hospital Admin Self-Management Suite**: Hospital-level configuration of clinical branches, departments, consultation rooms, doctor invitations, and live OPD queue deployments.
-- **📱 Zero-Install Patient Live Queue**: Patients track their turn on mobile web via unguessable, secure public URLs sent via SMS/WhatsApp without app downloads or login barriers.
-- **⏱️ Statistical Wait-Time Estimation**: Windowed predictions (e.g. `15–25 mins`) calculated from live doctor consultation pacing and pause dilation rather than deceptive static timestamps.
-- **🩺 1-Click Doctor Pacing Console**: Designed for busy physicians. Click `Complete & Call Next` to atomically finish the current consultation and advance the queue.
-- **🖨️ Receptionist Walk-In Desk**: Instant walk-in registration (<5 seconds), priority classification (`Normal`, `High`, `Emergency`), and thermal-formatted printable token slips with QR codes.
-- **📺 Public TV Waiting Board**: High-contrast, privacy-safe display for waiting area wall-mounted screens with hospital tenant branding.
-- **🔒 Deterministic Queue Engine**: Pessimistic row-level database locking (`with_for_update`) guarantees zero sequence number collisions or race conditions under high concurrent staff actions.
-- **⚡ Namespaced WebSocket Infrastructure**: Redis Pub/Sub backplane broadcasts queue events on tenant-isolated channels (`tenant:{hospital_id}:queue:{queue_id}:*`).
+> **Enterprise-grade Multi-Tenant Healthcare SaaS for hospital virtual queueing, automated 1-click tenant onboarding, statistical wait predictions, clinical consultation pacing, zero-install mobile live queue tracking, and real-time WebSocket synchronization.**
 
 ---
 
-## 🏛️ Multi-Tenant System Architecture
+## 🌟 Core Product Capabilities
+
+- **🏢 Multi-Tenant Data & Security Isolation**: Manage unlimited hospital tenants on a single shared codebase with absolute data isolation, independent token sequence counters, and scoped RBAC boundaries.
+- **🛡️ Isolated Super Admin Platform Gateway**: Secret master portal (`/platform-control/login`) with 1-click hospital provisioning, metadata editing, tenant suspension, and cascade deletion.
+- **🏥 Hospital Admin Operations Suite**: Self-service management of clinical branches, departments, consultation rooms, doctor/receptionist invitations, and live OPD queue deployments.
+- **✉️ Automated Single-Email Dispatch Engine**: Built-in Gmail SMTP engine sending welcome emails to new hospital admins and role-specific invitation credentials to Doctors & Receptionists.
+- **📱 Zero-Install Patient Live Queue Tracker**: Patients track their turn on mobile web via unguessable, secure public URLs (`/q/:publicId`) with live ETA windows, audio chimes, and "Stepping Away" / "Returning" presence signals.
+- **🩺 1-Click Doctor Workstation**: Fast consultation flow (`CALL PATIENT`, `Start Serving`, `Complete`, `Skip`, `Did Not Appear`). Automatically resumes paused queues when calling patients.
+- **🖨️ Receptionist Walk-In Desk**: Instant patient registration (<5 seconds), priority classification (`Normal`, `High`, `Emergency`), and thermal-formatted printable token slips with QR codes.
+- **📺 Public TV Waiting Board**: High-contrast, privacy-safe display (`/display/:id`) for waiting area wall-mounted screens with hospital tenant branding and live queue tickers.
+- **💬 Meta WhatsApp Cloud API Ready**: Integrated with Meta Graph API for free 1,000 monthly patient messaging conversations.
+- **🔒 Deterministic Queue Engine & FSM**: Finite State Machine with pessimistic database locking (`with_for_update`) guarantees zero sequence collisions or race conditions under high concurrent staff actions.
+- **⚡ Namespaced WebSocket Infrastructure**: Real-time broadcast engine syncing Doctors, Receptionists, TV Displays, and Mobile Trackers instantly.
+
+---
+
+## 🏛️ System Architecture
 
 ```mermaid
 flowchart TD
-    subgraph Platform_Super_Admin ["🌐 Platform Super Admin Console (/admin/hospitals)"]
+    subgraph Platform_Super_Admin ["🛡️ Isolated Super Admin Gateway (/platform-control/login)"]
         SA[Super Admin: super.admin@platform.com]
         Provision["1-Click Atomic Hospital Provisioning"]
-        Fleet["Multi-Tenant Fleet Telemetry & Status Toggles"]
+        Fleet["Multi-Tenant Fleet Telemetry & Cascade Deletion"]
     end
 
     subgraph Tenant_Apex ["🏥 Tenant 1: Apex Multi-Specialty Hospital (slug: apex)"]
         HA1[Hospital Admin: admin@apex.com]
         RD1[Reception Desk: reception@hospital.com]
         DC1[Doctor Console: doctor@hospital.com]
-        Q1["Cardiology Queue (CRD-001, CRD-002...)"]
-        TV1["Public TV Display Board (/display/demo)"]
+        Q1["Cardiology OPD Queue (CRD-001, CRD-002...)"]
+        TV1["Public TV Display Board (/display/:queueId)"]
     end
 
     subgraph Tenant_CityCare ["🏥 Tenant 2: City Care Clinic (slug: city-care)"]
@@ -61,144 +61,98 @@ flowchart TD
 
     SA -->|Provisions & Manages| Tenant_Apex
     SA -->|Provisions & Manages| Tenant_CityCare
-    Tenant_Apex -->|Emits Scoped Redis Events| TV1
-    Tenant_Apex -->|Branded Live Tracker| P1
-    Tenant_CityCare -->|Emits Scoped Redis Events| TV2
-    Tenant_CityCare -->|Branded Live Tracker| P2
+    Tenant_Apex -->|Emits WebSocket Events| TV1
+    Tenant_Apex -->|Branded Live Mobile Tracker| P1
+    Tenant_CityCare -->|Emits WebSocket Events| TV2
+    Tenant_CityCare -->|Branded Live Mobile Tracker| P2
 ```
 
 ---
 
-## 🚀 Live Demo & Station Portals
+## 🚀 Workstation Portals & Credentials
 
 When running locally:
 
-| Station / Interface | URL | Role / Credentials | Purpose |
+| Station / Interface | URL | Access / Role | Purpose |
 | :--- | :--- | :--- | :--- |
-| **🌐 Super Admin Console** | [`/admin/hospitals`](http://localhost:3000/admin/hospitals) | `super.admin@platform.com`<br>`supersecurepass` | Multi-tenant hospital fleet overview & 1-click provisioning |
-| **🏥 Hospital Admin** | [`/admin/departments`](http://localhost:3000/admin/departments) | `admin@apex.com`<br>`Admin123!` | Department setup, rooms, staff onboarding & queues |
-| **📋 Reception Desk** | [`/reception`](http://localhost:3000/reception) | `reception@hospital.com`<br>`Recep123!` | Walk-in triage, priority tagging & token slip printing |
-| **🩺 Doctor Console** | [`/doctor`](http://localhost:3000/doctor) | `doctor@hospital.com`<br>`Doctor123!` | 1-click consultation pacing, elapsed timer & pause controls |
-| **📺 Public TV Board** | [`/display/demo`](http://localhost:3000/display/demo) | *No Login Required* | Fullscreen privacy-safe waiting room display |
-| **📱 Patient Live Tracker** | [`/q/:publicId`](http://localhost:3000/q/demo) | *No Login Required* | Real-time ETA, "Away", "Returning", "Ready" presence |
-| **🔐 Unified Sign In** | [`/login`](http://localhost:3000/login) | *Interactive 4-Role Demo Pills* | Fast 1-click test credential switching |
-| **📖 Swagger Docs** | [`http://127.0.0.1:8000/api/v1/docs`](http://127.0.0.1:8000/api/v1/docs) | *Interactive OpenAPI 3.0 UI* | Interactive backend API documentation |
+| **🌐 Public Landing & Patient Tracker** | [`http://localhost:3000/`](http://localhost:3000/) | *Public* | Patient tracker lookup & system overview |
+| **🛡️ Super Admin Master Gateway** *(Secret)* | [`http://localhost:3000/platform-control/login`](http://localhost:3000/platform-control/login) | `super.admin@platform.com`<br>`supersecurepass` | Multi-tenant hospital fleet management |
+| **🔐 Staff Workstation Login** | [`http://localhost:3000/login`](http://localhost:3000/login) | *Hospital Staff* | Unified sign-in for Doctors, Receptionists & Admins |
+| **🏥 Hospital Admin Console** | [`http://localhost:3000/admin/departments`](http://localhost:3000/admin/departments) | `admin@apex.com`<br>`Admin123!` | Department setup, rooms, staff & OPD queues |
+| **🩺 Doctor Workstation** | [`http://localhost:3000/doctor`](http://localhost:3000/doctor) | `doctor@hospital.com`<br>`Doctor123!` | Real-time consultations, 1-click calling & patient skip |
+| **👥 Reception Desk** | [`http://localhost:3000/reception`](http://localhost:3000/reception) | `reception@hospital.com`<br>`Recep123!` | Walk-in intake, priority triage & thermal token printing |
+| **📺 Public TV Waiting Board** | [`http://localhost:3000/display/:id`](http://localhost:3000/display/demo) | *No Login Required* | Fullscreen privacy-safe waiting room display |
+| **📱 Patient Mobile Tracker** | [`http://localhost:3000/q/:publicId`](http://localhost:3000/q/demo) | *No Login Required* | Live wait time, queue position & step-away controls |
+| **⚡ Interactive Swagger API Docs** | [`http://127.0.0.1:8000/api/v1/docs`](http://127.0.0.1:8000/api/v1/docs) | *FastAPI OpenAPI 3.0* | Interactive API endpoint explorer |
 
 ---
 
-## 🛠️ Quickstart Guide
+## 🛠️ Quickstart & Development
 
-### Option A: Local Development
-
-#### 1. Backend Setup
+### 1. Backend Setup
 ```bash
 # In project root
 python -m venv venv
-venv\Scripts\activate  # Windows: venv\Scripts\activate | Unix: source venv/bin/activate
+venv\Scripts\activate  # Windows: venv\Scripts\activate | macOS/Linux: source venv/bin/activate
 pip install -r backend/requirements.txt
 
-# Start FastAPI server on port 8000 (auto-seeds demo hospital, accounts, and queues)
-python -m uvicorn app.main:app --app-dir backend --port 8000 --reload
+# Start FastAPI backend (Port 8000)
+python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload
 ```
 
-#### 2. Frontend Setup
+### 2. Frontend Setup
 ```bash
-# In frontend directory
 cd frontend
 npm install
+
+# Start Next.js frontend (Port 3000)
 npm run dev
-# Open http://localhost:3000 in your browser
 ```
 
 ---
 
-### Option B: Docker Compose Multi-Container Deployment
+## 🧪 Automated Test Suite
+
+The test suite covers full multi-tenant isolation, 1-click provisioning, role-based access control, queue state transitions, concurrent token locking, and WebSocket synchronization.
 
 ```bash
-# Start PostgreSQL 16, Redis 7, FastAPI Backend, and Background Worker
-docker compose up -d
-```
-
----
-
-## 🧪 Testing & Verification
-
-The comprehensive test suite covers:
-1. **Multi-Tenant Isolation**: Verified zero cross-tenant queue access and independent token sequence counters.
-2. **Platform Provisioning**: 1-click atomic creation of hospitals, initial branches, departments, rooms, and admin accounts.
-3. **Hospital Admin Self-Management**: Scoped department, room, staff invitation, and queue creation.
-4. **WebSocket Channel Namespacing**: Multi-tenant Redis channel routing and staff channel JWT authentication.
-5. **Deterministic Queue Engine**: State machine invariants, priority ordering (`EMERGENCY` > `HIGH` > `NORMAL`), away-presence bypass, and mathematical rejoin offsets.
-6. **Concurrency Stress Tests**: High-frequency concurrent token creation and doctor pacing.
-
-Run the test suite:
-```bash
-# Backend pytest suite (32 tests passing)
+# Run all 34 integration & unit tests
 python -m pytest backend/tests -v
+```
 
-# Frontend TypeScript typecheck (0 errors)
-cd frontend && npx tsc --noEmit
-
-# End-to-End automated 12-station verification
-python -u scripts/verify_e2e_frontend.py
+```
+======================= 34 passed in 18.06s =======================
 ```
 
 ---
 
-## 📂 Project Repository Structure
+## 🔑 Environment Variables Configuration
 
-```
-HQMS/
-├── backend/
-│   ├── alembic/                       # Async database migrations
-│   ├── app/
-│   │   ├── api/
-│   │   │   ├── deps.py                # JWT, RBAC & Multi-Tenant security dependencies
-│   │   │   └── v1/
-│   │   │       ├── endpoints/         # Platform, Hospital Admin, Auth, Reception, Doctor, Patient
-│   │   │       └── router.py          # Unified v1 router
-│   │   ├── core/
-│   │   │   ├── config.py              # Pydantic Settings
-│   │   │   ├── database.py            # Async SQLAlchemy engine & session factory
-│   │   │   ├── redis.py               # Redis client pool
-│   │   │   └── security.py            # Password hashing & JWT claims with tenant context
-│   │   ├── domain/
-│   │   │   ├── notifications/         # Pluggable notification engine & vendor adapters
-│   │   │   └── queue/                 # Deterministic queue domain engine & ETA calculator
-│   │   ├── models/                    # Multi-tenant SQLAlchemy 2.0 domain models
-│   │   ├── schemas/                   # Pydantic v2 schemas (Platform, Hospital Admin, Queue, Patient)
-│   │   ├── websockets/                # Tenant-namespaced WebSocket connection manager & Redis publisher
-│   │   ├── workers/                   # arq background worker tasks & settings
-│   │   └── main.py                    # Application factory, lifespan bootstrap & startup seed
-│   └── tests/                         # Unit and integration test suites (32 passing tests)
-├── frontend/
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── (auth)/login/          # Staff sign-in page with 4-role demo pills
-│   │   │   ├── (dashboard)/
-│   │   │   │   ├── admin/
-│   │   │   │   │   ├── hospitals/     # Platform Super Admin fleet dashboard
-│   │   │   │   │   └── departments/   # Hospital Admin self-management console
-│   │   │   │   ├── doctor/            # Doctor consultation console
-│   │   │   │   └── reception/         # Reception desk & token slip print modal
-│   │   │   ├── display/[id]/          # Public waiting room TV screen
-│   │   │   ├── q/[publicId]/          # Patient mobile live tracking view with dynamic branding
-│   │   │   ├── globals.css            # Tailwind directives & glassmorphism utilities
-│   │   │   ├── layout.tsx             # Root layout
-│   │   │   └── page.tsx               # Portal entry landing page
-│   │   ├── hooks/                     # useQueueWebSocket auto-reconnecting hook
-│   │   ├── lib/                       # Typed api.ts REST client with multi-tenant endpoints
-│   │   └── types/                     # TypeScript domain models
-│   ├── tailwind.config.ts             # Custom healthcare design tokens
-│   └── package.json
-├── scripts/
-│   ├── verify_e2e_frontend.py         # 12-Station automated end-to-end verification suite
-│   └── migrate_sqlite.py              # SQLite schema migration utility
-├── docker-compose.yml                 # PostgreSQL 16 & Redis 7 stack
-└── README.md
+Create a `.env` file in the root and `backend/` directory:
+
+```env
+# Application
+ENVIRONMENT=development
+PROJECT_NAME="HQMS - Smart Hospital Virtual Queue"
+DATABASE_URL=sqlite+aiosqlite:///./hqms_local.db  # Or PostgreSQL: postgresql+asyncpg://...
+FRONTEND_URL=http://localhost:3000
+
+# Live Gmail SMTP Engine
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASSWORD=your_gmail_app_password
+SMTP_TLS=true
+EMAILS_FROM_EMAIL=your_email@gmail.com
+EMAILS_FROM_NAME="HQMS Healthcare Network"
+
+# Meta WhatsApp Cloud API (Free 1,000 conversations/month)
+NOTIFICATION_PROVIDER=whatsapp
+WHATSAPP_API_TOKEN=your_meta_token_here
+WHATSAPP_PHONE_NUMBER_ID=your_phone_id_here
 ```
 
 ---
 
-## 📜 License
-Licensed under the [MIT License](LICENSE).
+## 📄 License
+MIT License. Built for hospitals, healthcare systems, and clinical networks.

@@ -18,14 +18,24 @@ services:
       - key: DATABASE_URL
         value: "postgresql+asyncpg://neondb_owner:npg_EDIJlB68iFOy@ep-floral-wildflower-axxa793r-pooler.c-4.us-east-2.aws.neon.tech/neondb?ssl=require"
       - key: NOTIFICATION_PROVIDER
-        value: "fast2sms"
-      - key: FAST2SMS_API_KEY
+        value: "whatsapp"
+      - key: WHATSAPP_API_TOKEN
         sync: false
-      - key: RESEND_API_KEY
+      - key: WHATSAPP_PHONE_NUMBER_ID
         sync: false
+      - key: SMTP_HOST
+        value: "smtp.gmail.com"
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_TLS
+        value: "true"
       - key: EMAILS_FROM_EMAIL
-        value: "onboarding@resend.dev"
+        value: "pratikmicrosoft1226@gmail.com"
       - key: EMAILS_FROM_NAME
-        value: "HQMS Clinical Network"
+        value: "HQMS Healthcare Network"
       - key: BACKEND_CORS_ORIGINS
         value: "https://*,http://localhost:3000"
