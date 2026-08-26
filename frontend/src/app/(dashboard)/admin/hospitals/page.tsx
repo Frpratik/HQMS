@@ -20,14 +20,15 @@ import {
   Check,
   Search,
 } from "lucide-react";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { api, HospitalSummary, HospitalProvisionResponse } from "@/lib/api";
 
 export default function PlatformAdminHospitalsPage() {
   const router = useRouter();
+  const { user, loading: authLoading, isAuthorized } = useRequireAuth(["SUPER_ADMIN"]);
   const [hospitals, setHospitals] = useState<HospitalSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [user, setUser] = useState<any>(null);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -65,17 +66,9 @@ export default function PlatformAdminHospitalsPage() {
   };
 
   useEffect(() => {
-    const activeUser = api.auth.getUser();
-    if (!activeUser || activeUser.role !== "SUPER_ADMIN") {
-      if (activeUser?.role === "DOCTOR") router.push("/doctor");
-      else if (activeUser?.role === "RECEPTIONIST") router.push("/reception");
-      else if (activeUser?.role === "HOSPITAL_ADMIN") router.push("/admin/departments");
-      else router.push("/login");
-      return;
-    }
-    setUser(activeUser);
+    if (!isAuthorized) return;
     fetchHospitals();
-  }, []);
+  }, [isAuthorized]);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -161,6 +154,15 @@ export default function PlatformAdminHospitalsPage() {
   const totalBranches = hospitals.reduce((acc, h) => acc + h.branch_count, 0);
   const totalStaff = hospitals.reduce((acc, h) => acc + h.staff_count, 0);
   const totalQueues = hospitals.reduce((acc, h) => acc + h.queue_count, 0);
+
+  if (authLoading || !isAuthorized) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white">
+        <Activity className="w-8 h-8 text-purple-400 animate-spin mb-3" />
+        <span className="text-sm font-bold text-slate-300">Verifying Super Admin Authorization...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased selection:bg-purple-500 selection:text-white">

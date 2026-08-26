@@ -20,12 +20,15 @@ import {
   ChevronRight,
   ShieldAlert,
 } from "lucide-react";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { api } from "@/lib/api";
 import { useQueueWebSocket } from "@/hooks/useQueueWebSocket";
 import { Queue, QueueSummary, QueueToken } from "@/types/queue";
 
 export default function DoctorConsolePage() {
   const router = useRouter();
+  const { user, loading: authLoading, isAuthorized } = useRequireAuth(["DOCTOR", "DOCTOR_ASSISTANT"]);
+
   const [queues, setQueues] = useState<Queue[]>([]);
   const [selectedQueueId, setSelectedQueueId] = useState<string | null>(null);
   const [summary, setSummary] = useState<QueueSummary | null>(null);
@@ -40,8 +43,9 @@ export default function DoctorConsolePage() {
   const [pauseReason, setPauseReason] = useState("Doctor attending urgent emergency ward case");
   const [pauseDurationMin, setPauseDurationMin] = useState(20);
 
-  // Fetch initial Queues
+  // Fetch initial Queues once authorized
   useEffect(() => {
+    if (!isAuthorized) return;
     const fetchQueues = async () => {
       try {
         const list = await api.queues.list();
@@ -56,7 +60,7 @@ export default function DoctorConsolePage() {
       }
     };
     fetchQueues();
-  }, []);
+  }, [isAuthorized]);
 
   // Fetch Queue Summary
   const fetchSummary = useCallback(async () => {
@@ -209,6 +213,15 @@ export default function DoctorConsolePage() {
   const nextCandidates = (summary?.active_tokens || [])
     .filter((t) => t.status === "READY" || t.status === "RETURNING")
     .slice(0, 4);
+
+  if (authLoading || !isAuthorized) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white">
+        <Activity className="w-8 h-8 text-emerald-400 animate-spin mb-3" />
+        <span className="text-sm font-bold text-slate-300">Verifying Physician Credentials...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased selection:bg-emerald-500 selection:text-white">

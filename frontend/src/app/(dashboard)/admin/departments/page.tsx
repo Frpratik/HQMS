@@ -20,6 +20,7 @@ import {
   Calendar,
   Sparkles,
 } from "lucide-react";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import {
   api,
   HospitalAdminOverview,
@@ -34,10 +35,10 @@ type ActiveTab = "departments" | "staff" | "queues";
 
 export default function HospitalAdminDepartmentsPage() {
   const router = useRouter();
+  const { user, loading: authLoading, isAuthorized } = useRequireAuth(["HOSPITAL_ADMIN"]);
   const [overview, setOverview] = useState<HospitalAdminOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<ActiveTab>("departments");
-  const [user, setUser] = useState<any>(null);
 
   // Modals
   const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
@@ -85,16 +86,9 @@ export default function HospitalAdminDepartmentsPage() {
   };
 
   useEffect(() => {
-    const activeUser = api.auth.getUser();
-    if (!activeUser || (activeUser.role !== "HOSPITAL_ADMIN" && activeUser.role !== "SUPER_ADMIN")) {
-      if (activeUser?.role === "DOCTOR") router.push("/doctor");
-      else if (activeUser?.role === "RECEPTIONIST") router.push("/reception");
-      else router.push("/login");
-      return;
-    }
-    setUser(activeUser);
+    if (!isAuthorized) return;
     fetchOverview();
-  }, []);
+  }, [isAuthorized]);
 
   const handleCreateDepartment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -186,6 +180,15 @@ export default function HospitalAdminDepartmentsPage() {
     api.auth.logout();
     router.push("/login");
   };
+
+  if (authLoading || !isAuthorized) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white">
+        <Activity className="w-8 h-8 text-purple-400 animate-spin mb-3" />
+        <span className="text-sm font-bold text-slate-300">Verifying Hospital Administration Privileges...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased selection:bg-emerald-500 selection:text-white">

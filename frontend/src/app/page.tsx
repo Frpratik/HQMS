@@ -16,7 +16,23 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+import { useState, useEffect } from "react";
+import { api, StaffUser } from "@/lib/api";
+
 export default function HomePage() {
+  const [currentUser, setCurrentUser] = useState<StaffUser | null>(null);
+
+  useEffect(() => {
+    setCurrentUser(api.auth.getUser());
+  }, []);
+
+  const getStationLink = (role?: string) => {
+    if (role === "SUPER_ADMIN") return "/admin/hospitals";
+    if (role === "HOSPITAL_ADMIN") return "/admin/departments";
+    if (role === "DOCTOR" || role === "DOCTOR_ASSISTANT") return "/doctor";
+    return "/reception";
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased selection:bg-emerald-500 selection:text-white">
       {/* ============================================================ */}
@@ -39,35 +55,44 @@ export default function HomePage() {
           </div>
 
           <div className="flex items-center space-x-2.5">
-            <Link
-              href="/admin/departments"
-              className="text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-3 py-1.5 rounded-xl transition hidden md:inline-flex items-center space-x-1.5"
-            >
-              <Building2 className="w-3.5 h-3.5 text-emerald-700" />
-              <span>Hospital Admin</span>
-            </Link>
-
-            <Link
-              href="/admin/hospitals"
-              className="text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-3 py-1.5 rounded-xl transition hidden md:inline-flex items-center space-x-1.5"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-purple-700" />
-              <span>Super Admin</span>
-            </Link>
-
-            <Link
-              href="/login"
-              className="text-xs sm:text-sm font-bold text-slate-700 hover:text-slate-900 transition px-3.5 py-2 rounded-xl hover:bg-slate-100"
-            >
-              Staff Sign In
-            </Link>
-
-            <Link
-              href="/reception"
-              className="text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl shadow-xs transition"
-            >
-              Open Reception
-            </Link>
+            {currentUser ? (
+              <>
+                <span className="text-xs font-bold text-slate-600 hidden sm:inline-block">
+                  {currentUser.full_name} ({currentUser.role})
+                </span>
+                <Link
+                  href={getStationLink(currentUser.role)}
+                  className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl shadow-xs transition"
+                >
+                  My Station
+                </Link>
+                <button
+                  onClick={() => {
+                    api.auth.logout();
+                    setCurrentUser(null);
+                    window.location.reload();
+                  }}
+                  className="text-xs font-bold text-rose-700 hover:bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-xl transition"
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="text-xs sm:text-sm font-bold text-slate-700 hover:text-slate-900 transition px-3.5 py-2 rounded-xl hover:bg-slate-100"
+                >
+                  Staff Sign In
+                </Link>
+                <Link
+                  href="/login"
+                  className="text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl shadow-xs transition"
+                >
+                  Register Facility
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>

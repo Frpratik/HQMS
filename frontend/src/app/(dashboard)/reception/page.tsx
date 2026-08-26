@@ -21,12 +21,14 @@ import {
   PhoneCall,
   UserCheck,
 } from "lucide-react";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { api } from "@/lib/api";
 import { useQueueWebSocket } from "@/hooks/useQueueWebSocket";
 import { Queue, QueueSummary, QueueToken, PriorityLevel, Gender } from "@/types/queue";
 
 export default function ReceptionDashboardPage() {
   const router = useRouter();
+  const { user, loading: authLoading, isAuthorized } = useRequireAuth(["RECEPTIONIST", "HOSPITAL_ADMIN"]);
   const [queues, setQueues] = useState<Queue[]>([]);
   const [selectedQueueId, setSelectedQueueId] = useState<string | null>(null);
   const [summary, setSummary] = useState<QueueSummary | null>(null);
@@ -46,8 +48,9 @@ export default function ReceptionDashboardPage() {
   const [lastIssuedToken, setLastIssuedToken] = useState<QueueToken | null>(null);
   const [showPrintModal, setShowPrintModal] = useState(false);
 
-  // Fetch Queues on mount
+  // Fetch Queues once authorized
   useEffect(() => {
+    if (!isAuthorized) return;
     const fetchInitialData = async () => {
       try {
         const queueList = await api.queues.list();
@@ -56,13 +59,13 @@ export default function ReceptionDashboardPage() {
           setSelectedQueueId(queueList[0].id);
         }
       } catch (err) {
-        console.error("Failed to load queues:", err);
+        console.error("Failed to load reception queues:", err);
       } finally {
         setLoading(false);
       }
     };
     fetchInitialData();
-  }, []);
+  }, [isAuthorized]);
 
   // Fetch Queue Summary whenever selectedQueueId changes
   const fetchSummary = useCallback(async () => {
@@ -145,6 +148,15 @@ export default function ReceptionDashboardPage() {
     if (activeTab === "MISSED") return t.status === "MISSED";
     return true;
   });
+
+  if (authLoading || !isAuthorized) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white">
+        <Activity className="w-8 h-8 text-blue-400 animate-spin mb-3" />
+        <span className="text-sm font-bold text-slate-300">Verifying Front Desk Credentials...</span>
+      </div>
+    );
+  }
 
   const isPaused = summary?.queue.status === "PAUSED";
 
