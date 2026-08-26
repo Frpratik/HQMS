@@ -184,11 +184,21 @@ export const api = {
         `/platform/hospitals/${hospitalId}/send-welcome-email`,
         { method: "POST" }
       ),
+    updateHospital: (hospitalId: string, data: { name?: string; slug?: string; address?: string; phone?: string; is_active?: boolean }) =>
+      request<HospitalSummary>(`/platform/hospitals/${hospitalId}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
     updateStatus: (hospitalId: string, isActive: boolean) =>
-      request<HospitalSummary>(`/platform/hospitals/${hospitalId}/status`, {
+      request<HospitalSummary>(`/platform/hospitals/${hospitalId}`, {
         method: "PATCH",
         body: JSON.stringify({ is_active: isActive }),
       }),
+    deleteHospital: (hospitalId: string) =>
+      request<{ status: string; message: string; deleted_hospital_id: string }>(
+        `/platform/hospitals/${hospitalId}`,
+        { method: "DELETE" }
+      ),
   },
 
   hospitalAdmin: {

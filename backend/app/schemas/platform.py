@@ -50,3 +50,12 @@ class HospitalSummaryOut(BaseModel):
 
 class HospitalStatusUpdate(BaseModel):
     is_active: bool
+
+
+class HospitalUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=255)
+    slug: Optional[str] = Field(None, min_length=2, max_length=100)
+    address: Optional[str] = Field(None, max_length=500)
+    phone: Optional[str] = Field(None, max_length=50)
+    is_active: Optional[bool] = None
+

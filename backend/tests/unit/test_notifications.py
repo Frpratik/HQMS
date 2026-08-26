@@ -57,14 +57,18 @@ async def test_notification_engine_dispatch_and_mock_history():
     assert "ORT-003" in mock_provider.sent_sms_log[0]["message"]
 
 
+from unittest.mock import patch
+
 @pytest.mark.asyncio
 async def test_background_worker_notification_task():
     """Verify background worker task executes cleanly."""
     ctx = {}
-    success = await send_patient_notification_task(
-        ctx=ctx,
-        phone_number="+919988776655",
-        event_type="YOU_ARE_NEXT",
-        context={"token_display_number": "ENT-001", "room_number": "Room 101"},
-    )
-    assert success is True
+    with patch("app.domain.notifications.engine.get_notification_provider", return_value=ConsoleMockNotificationProvider()):
+        success = await send_patient_notification_task(
+            ctx=ctx,
+            phone_number="+919988776655",
+            event_type="YOU_ARE_NEXT",
+            context={"token_display_number": "ENT-001", "room_number": "Room 101"},
+        )
+        assert success is True
+

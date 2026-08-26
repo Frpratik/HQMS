@@ -19,6 +19,10 @@ import {
   Copy,
   Check,
   Search,
+  Edit3,
+  Trash2,
+  Mail,
+  X,
 } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { api, HospitalSummary, HospitalProvisionResponse } from "@/lib/api";
@@ -30,13 +34,24 @@ export default function PlatformAdminHospitalsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Modal State
+  // Modal State: Onboard
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [provisioning, setProvisioning] = useState(false);
   const [provisionSuccess, setProvisionSuccess] = useState<HospitalProvisionResponse | null>(null);
   const [copiedKey, setCopiedKey] = useState(false);
 
-  // Form State
+  // Modal State: Edit
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingHospital, setEditingHospital] = useState<HospitalSummary | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    slug: "",
+    address: "",
+    phone: "",
+  });
+  const [updating, setUpdating] = useState(false);
+
+  // Form State: Onboard
   const [form, setForm] = useState({
     name: "",
     slug: "",
@@ -98,14 +113,14 @@ export default function PlatformAdminHospitalsPage() {
         name: form.name.trim(),
         slug: form.slug.trim() || undefined,
         admin_name: form.admin_name.trim(),
-        admin_email: form.admin_email.trim().toLowerCase(),
+        admin_email: form.admin_email.trim(),
         admin_password: form.admin_password,
-        admin_phone: form.admin_phone.trim() || undefined,
+        admin_phone: form.admin_phone?.trim() || undefined,
         branch_name: form.branch_name.trim(),
         department_name: form.department_name.trim(),
-        department_code: form.department_code.trim().toUpperCase(),
-        address: form.address.trim() || undefined,
-        phone: form.phone.trim() || undefined,
+        department_code: form.department_code.trim(),
+        address: form.address?.trim() || undefined,
+        phone: form.phone?.trim() || undefined,
       });
 
       setProvisionSuccess(result);
@@ -114,6 +129,57 @@ export default function PlatformAdminHospitalsPage() {
       alert(`Provisioning Failed: ${err.message}`);
     } finally {
       setProvisioning(false);
+    }
+  };
+
+  // Open Edit Modal
+  const openEditModal = (h: HospitalSummary) => {
+    setEditingHospital(h);
+    setEditForm({
+      name: h.name,
+      slug: h.slug,
+      address: h.address || "",
+      phone: h.phone || "",
+    });
+    setIsEditModalOpen(true);
+  };
+
+  // Submit Edit Hospital
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingHospital || !editForm.name) return;
+
+    try {
+      setUpdating(true);
+      await api.platform.updateHospital(editingHospital.id, {
+        name: editForm.name.trim(),
+        slug: editForm.slug.trim(),
+        address: editForm.address.trim(),
+        phone: editForm.phone.trim(),
+      });
+      setIsEditModalOpen(false);
+      setEditingHospital(null);
+      fetchHospitals();
+    } catch (err: any) {
+      alert(`Update Failed: ${err.message}`);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // Delete Hospital with Confirmation
+  const handleDeleteHospital = async (hospital: HospitalSummary) => {
+    const confirmed = confirm(
+      `⚠️ PERMANENT DELETION WARNING:\n\nAre you sure you want to permanently DELETE "${hospital.name}"?\n\nThis will purge all associated departments, rooms, queues, staff accounts, and patient tokens for this tenant.`
+    );
+    if (!confirmed) return;
+
+    try {
+      await api.platform.deleteHospital(hospital.id);
+      fetchHospitals();
+      alert(`Hospital "${hospital.name}" has been permanently deleted.`);
+    } catch (err: any) {
+      alert(`Deletion Failed: ${err.message}`);
     }
   };
 
@@ -132,9 +198,18 @@ export default function PlatformAdminHospitalsPage() {
     }
   };
 
+  const handleResendEmail = async (hospitalId: string, name: string) => {
+    try {
+      const res = await api.platform.resendWelcomeEmail(hospitalId);
+      alert(`Welcome credentials email successfully dispatched to ${res.recipient}!`);
+    } catch (err: any) {
+      alert(`Failed to send email: ${err.message}`);
+    }
+  };
+
   const handleLogout = () => {
     api.auth.logout();
-    router.push("/login");
+    router.push("/platform-control/login");
   };
 
   const copyCredentials = () => {
@@ -171,7 +246,7 @@ export default function PlatformAdminHospitalsPage() {
       {/* ============================================================ */}
       <header className="bg-white border-b border-slate-200/90 sticky top-0 z-40 px-6 py-3.5 flex items-center justify-between shadow-xs">
         <div className="flex items-center space-x-4">
-          <Link href="/" className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3">
             <div className="w-9 h-9 rounded-xl bg-purple-700 text-white flex items-center justify-center font-black shadow-xs">
               <ShieldCheck className="w-5 h-5" />
             </div>
@@ -181,115 +256,89 @@ export default function PlatformAdminHospitalsPage() {
                 Super Admin
               </span>
             </div>
-          </Link>
+          </div>
         </div>
 
         <div className="flex items-center space-x-3">
-          <div className="hidden sm:flex items-center space-x-2 text-xs font-mono text-slate-700 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
-            <span className="w-2 h-2 rounded-full bg-purple-600 animate-pulse" />
-            <span>{user?.email || "super.admin@platform.com"}</span>
-          </div>
+          <button
+            onClick={() => {
+              setProvisionSuccess(null);
+              setIsModalOpen(true);
+            }}
+            className="flex items-center space-x-2 bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-xs transition"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Onboard Hospital</span>
+          </button>
 
           <button
             onClick={fetchHospitals}
-            title="Refresh Fleet"
-            className="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl border border-slate-200 text-slate-700 transition"
+            title="Refresh list"
+            className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
 
           <button
             onClick={handleLogout}
-            title="Sign Out"
-            className="p-2 bg-slate-100 hover:bg-rose-50 rounded-xl border border-slate-200 text-slate-600 hover:text-rose-700 transition"
+            className="flex items-center space-x-1.5 text-rose-600 hover:bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-xl text-xs font-bold transition"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
           </button>
         </div>
       </header>
 
       {/* ============================================================ */}
-      {/* MAIN CONTENT WORKSPACE                                       */}
+      {/* MAIN CONTENT AREA                                            */}
       {/* ============================================================ */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
-        {/* Header & Onboard Button */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-black tracking-tight text-slate-950 flex items-center space-x-2.5">
-              <span>Multi-Tenant Hospital Fleet</span>
-              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-800 border border-purple-200">
-                {hospitals.length} Tenants
-              </span>
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Provision, monitor, and manage independent hospital organizations with strict tenant data isolation.
-            </p>
-          </div>
-
-          <button
-            onClick={() => {
-              setProvisionSuccess(null);
-              setIsModalOpen(true);
-            }}
-            className="px-4 py-2.5 bg-purple-700 hover:bg-purple-800 text-white font-bold rounded-xl shadow-xs flex items-center space-x-2 text-sm transition active:scale-95"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Onboard Hospital</span>
-          </button>
-        </div>
-
-        {/* Fleet KPI Metric Cards */}
+      <main className="max-w-7xl w-full mx-auto p-6 space-y-6 flex-1">
+        {/* KPI Fleet Overview Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
-              <span>Total Hospitals</span>
-              <Building2 className="w-4 h-4 text-purple-700" />
-            </span>
-            <div className="my-2">
-              <span className="text-3xl font-mono font-black text-purple-900 tracking-tight tabular-nums">
-                {hospitals.length}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Total Hospitals
               </span>
+              <Building2 className="w-4 h-4 text-purple-600" />
             </div>
-            <span className="text-xs text-slate-500 font-medium">Independent SaaS tenants</span>
+            <div className="text-3xl font-black text-slate-950 font-mono">{hospitals.length}</div>
+            <span className="text-xs text-slate-500 font-medium">Provisioned Tenants</span>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
-              <span>Active Facilities</span>
-              <Layers className="w-4 h-4 text-emerald-700" />
-            </span>
-            <div className="my-2">
-              <span className="text-3xl font-mono font-black text-emerald-900 tracking-tight tabular-nums">
-                {totalBranches}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Active Branches
               </span>
+              <Layers className="w-4 h-4 text-blue-600" />
             </div>
-            <span className="text-xs text-slate-500 font-medium">Total hospital branches</span>
+            <div className="text-3xl font-black text-slate-950 font-mono">{totalBranches}</div>
+            <span className="text-xs text-slate-500 font-medium">Physical Facilities</span>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
-              <span>Staff Accounts</span>
-              <Users className="w-4 h-4 text-blue-700" />
-            </span>
-            <div className="my-2">
-              <span className="text-3xl font-mono font-black text-blue-900 tracking-tight tabular-nums">
-                {totalStaff}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Clinical Staff
               </span>
+              <Users className="w-4 h-4 text-emerald-600" />
             </div>
+            <div className="text-3xl font-black text-slate-950 font-mono">{totalStaff}</div>
             <span className="text-xs text-slate-500 font-medium">Doctors & Receptionists</span>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
-              <span>Live OPD Queues</span>
-              <Activity className="w-4 h-4 text-teal-700" />
-            </span>
-            <div className="my-2">
-              <span className="text-3xl font-mono font-black text-teal-900 tracking-tight tabular-nums">
-                {totalQueues}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Total OPD Queues
+              </span>
+              <span className="text-xs font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+                Live
               </span>
             </div>
-            <span className="text-xs text-slate-500 font-medium">Real-time active queues</span>
+            <div className="text-3xl font-black text-slate-950 font-mono">{totalQueues}</div>
+            <span className="text-xs text-slate-500 font-medium">Active Queue Engines</span>
           </div>
         </div>
 
@@ -369,18 +418,47 @@ export default function PlatformAdminHospitalsPage() {
                         {new Date(h.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => handleToggleStatus(h)}
-                          title={h.is_active ? "Suspend Hospital" : "Activate Hospital"}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ml-auto border ${
-                            h.is_active
-                              ? "bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-800"
-                              : "bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-800"
-                          }`}
-                        >
-                          <Power className="w-3.5 h-3.5" />
-                          <span>{h.is_active ? "Suspend" : "Activate"}</span>
-                        </button>
+                        <div className="flex items-center justify-end space-x-2">
+                          {/* Resend Welcome Email */}
+                          <button
+                            onClick={() => handleResendEmail(h.id, h.name)}
+                            title="Resend Welcome & Credentials Email"
+                            className="p-1.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 border border-slate-200 rounded-lg transition"
+                          >
+                            <Mail className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Edit Hospital */}
+                          <button
+                            onClick={() => openEditModal(h)}
+                            title="Edit Hospital Profile"
+                            className="p-1.5 text-slate-600 hover:text-purple-700 hover:bg-purple-50 border border-slate-200 rounded-lg transition"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Toggle Active/Suspend */}
+                          <button
+                            onClick={() => handleToggleStatus(h)}
+                            title={h.is_active ? "Suspend Hospital" : "Activate Hospital"}
+                            className={`p-1.5 rounded-lg border transition ${
+                              h.is_active
+                                ? "text-amber-700 hover:bg-amber-50 border-amber-200"
+                                : "text-emerald-700 hover:bg-emerald-50 border-emerald-200"
+                            }`}
+                          >
+                            <Power className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Delete Hospital */}
+                          <button
+                            onClick={() => handleDeleteHospital(h)}
+                            title="Delete Hospital Tenant"
+                            className="p-1.5 text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-lg transition"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -410,6 +488,11 @@ export default function PlatformAdminHospitalsPage() {
                   </p>
                 </div>
 
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-900 font-semibold flex items-center justify-center space-x-2">
+                  <Check className="w-4 h-4 text-emerald-600" />
+                  <span>Welcome email with credentials was dispatched to <strong>{provisionSuccess.admin_email}</strong></span>
+                </div>
+
                 <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 text-left font-mono text-xs space-y-2.5">
                   <div className="flex justify-between border-b border-slate-200 pb-2">
                     <span className="text-slate-500">Tenant Slug:</span>
@@ -435,14 +518,15 @@ export default function PlatformAdminHospitalsPage() {
                       if (!provisionSuccess) return;
                       try {
                         await api.platform.resendWelcomeEmail(provisionSuccess.id);
-                        alert(`Welcome and credentials email successfully dispatched to ${provisionSuccess.admin_email}!`);
+                        alert(`Welcome credentials email re-sent to ${provisionSuccess.admin_email}!`);
                       } catch (err: any) {
                         alert(`Failed to send email: ${err.message}`);
                       }
                     }}
                     className="w-full py-3 bg-purple-50 hover:bg-purple-100 text-purple-800 rounded-xl font-bold text-xs flex items-center justify-center space-x-2 transition border border-purple-200"
                   >
-                    <span>Send / Resend Email</span>
+                    <Mail className="w-4 h-4" />
+                    <span>Resend Email</span>
                   </button>
 
                   <button
@@ -478,117 +562,113 @@ export default function PlatformAdminHospitalsPage() {
                 </div>
               </div>
             ) : (
-              /* Input Form */
+              /* Provision Form View */
               <form onSubmit={handleProvision} className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                  <h2 className="text-lg font-extrabold text-slate-900 flex items-center space-x-2">
-                    <Building2 className="w-5 h-5 text-purple-700" />
-                    <span>Onboard New Hospital Tenant</span>
-                  </h2>
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div>
+                    <h2 className="text-lg font-black text-slate-900">Onboard New Hospital Tenant</h2>
+                    <p className="text-xs text-slate-500">Atomic setup of facility, admin account, and starter OPD queue</p>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="text-slate-400 hover:text-slate-700 text-lg font-bold"
+                    className="p-1 text-slate-400 hover:text-slate-600 transition"
                   >
-                    ✕
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
 
                 <div className="space-y-3">
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
-                      Hospital Official Name <span className="text-rose-600">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Apollo Super Specialty Hospital"
-                      value={form.name}
-                      onChange={handleNameChange}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
-                      Unique Tenant Slug <span className="text-rose-600">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="apollo-care"
-                      value={form.slug}
-                      onChange={(e) => setForm((prev) => ({ ...prev, slug: e.target.value }))}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-mono text-purple-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 block">
+                    1. Hospital Organization Profile
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1">
-                        Hospital Admin Name <span className="text-rose-600">*</span>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Hospital Name <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="text"
                         required
-                        placeholder="Dr. Ramesh Sharma"
-                        value={form.admin_name}
-                        onChange={(e) => setForm((prev) => ({ ...prev, admin_name: e.target.value }))}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        value={form.name}
+                        onChange={handleNameChange}
+                        placeholder="e.g. Apollo City Hospital"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-purple-600 outline-none"
                       />
                     </div>
-
                     <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1">
-                        Admin Login Email <span className="text-rose-600">*</span>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Unique Slug Identifier <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={form.slug}
+                        onChange={(e) => setForm({ ...form, slug: e.target.value })}
+                        placeholder="apollo-city-hospital"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-semibold text-slate-900 focus:ring-2 focus:ring-purple-600 outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 block">
+                    2. Primary Hospital Administrator
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Admin Full Name <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={form.admin_name}
+                        onChange={(e) => setForm({ ...form, admin_name: e.target.value })}
+                        placeholder="Dr. Rajesh Gupta"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-purple-600 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Admin Login Email <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="email"
                         required
-                        placeholder="admin@apollo.com"
                         value={form.admin_email}
-                        onChange={(e) => setForm((prev) => ({ ...prev, admin_email: e.target.value }))}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        onChange={(e) => setForm({ ...form, admin_email: e.target.value })}
+                        placeholder="admin@apollo.com"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-purple-600 outline-none"
                       />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
-                      Admin Initial Password <span className="text-rose-600">*</span>
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      placeholder="Minimum 6 characters"
-                      value={form.admin_password}
-                      onChange={(e) => setForm((prev) => ({ ...prev, admin_password: e.target.value }))}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1">
-                        Default Branch Name
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Initial Master Password <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="text"
-                        value={form.branch_name}
-                        onChange={(e) => setForm((prev) => ({ ...prev, branch_name: e.target.value }))}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        required
+                        value={form.admin_password}
+                        onChange={(e) => setForm({ ...form, admin_password: e.target.value })}
+                        placeholder="AdminPass123!"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-semibold text-slate-900 focus:ring-2 focus:ring-purple-600 outline-none"
                       />
                     </div>
-
                     <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1">
-                        Default Department Code
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Phone (Optional)
                       </label>
                       <input
                         type="text"
-                        value={form.department_code}
-                        onChange={(e) => setForm((prev) => ({ ...prev, department_code: e.target.value }))}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 uppercase"
+                        value={form.admin_phone}
+                        onChange={(e) => setForm({ ...form, admin_phone: e.target.value })}
+                        placeholder="+91 98765 43210"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-purple-600 outline-none"
                       />
                     </div>
                   </div>
@@ -598,20 +678,131 @@ export default function PlatformAdminHospitalsPage() {
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-900 transition"
+                    className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={provisioning}
-                    className="px-5 py-2.5 bg-purple-700 hover:bg-purple-800 text-white font-bold rounded-xl text-xs transition disabled:opacity-50 shadow-xs"
+                    className="px-5 py-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center space-x-2 disabled:opacity-50"
                   >
-                    {provisioning ? "Provisioning Tenant..." : "Create Hospital Tenant"}
+                    {provisioning ? (
+                      <>
+                        <Activity className="w-4 h-4 animate-spin" />
+                        <span>Provisioning & Dispatching Email...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Complete Onboarding</span>
+                        <Plus className="w-4 h-4" />
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: EDIT HOSPITAL PROFILE                                 */}
+      {/* ============================================================ */}
+      {isEditModalOpen && editingHospital && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-5 animate-fade-in relative text-slate-900">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h2 className="text-lg font-black text-slate-900">Update Hospital Profile</h2>
+                <p className="text-xs text-slate-500">Edit metadata for "{editingHospital.name}"</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdate} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Hospital Name <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-purple-600 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Unique Slug Identifier <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editForm.slug}
+                  onChange={(e) => setEditForm({ ...editForm, slug: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-semibold text-slate-900 focus:ring-2 focus:ring-purple-600 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Address
+                </label>
+                <input
+                  type="text"
+                  value={editForm.address}
+                  onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                  placeholder="Plot 42, Medical Enclave"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-purple-600 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Contact Phone
+                </label>
+                <input
+                  type="text"
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                  placeholder="+91 98765 43210"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-purple-600 outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updating}
+                  className="px-5 py-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center space-x-2 disabled:opacity-50"
+                >
+                  {updating ? (
+                    <>
+                      <Activity className="w-4 h-4 animate-spin" />
+                      <span>Saving Changes...</span>
+                    </>
+                  ) : (
+                    <span>Save Changes</span>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

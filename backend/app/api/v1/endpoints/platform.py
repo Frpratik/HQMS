@@ -13,6 +13,7 @@ from app.schemas.platform import (
     HospitalProvisionOut,
     HospitalSummaryOut,
     HospitalStatusUpdate,
+    HospitalUpdate,
 )
 from app.api.deps import require_roles
 
@@ -249,20 +250,42 @@ async def list_hospitals(
     response_model=HospitalSummaryOut,
     summary="Update Hospital Active Status (Super Admin)",
 )
-async def update_hospital_status(
+@router.patch(
+    "/hospitals/{hospital_id}",
+    response_model=HospitalSummaryOut,
+    summary="Update Hospital Profile (Super Admin)",
+)
+async def update_hospital(
     hospital_id: uuid.UUID,
-    status_in: HospitalStatusUpdate,
+    hospital_in: HospitalUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: StaffUser = Depends(require_roles(UserRole.SUPER_ADMIN)),
 ) -> Any:
     """
-    Activate or suspend a hospital tenant organization.
+    Update hospital tenant properties (name, slug, address, phone, is_active).
     """
+    from app.schemas.platform import HospitalUpdate
     hospital = await db.scalar(select(Hospital).where(Hospital.id == hospital_id))
     if not hospital:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hospital tenant not found")
 
-    hospital.is_active = status_in.is_active
+    if hospital_in.name is not None:
+        hospital.name = hospital_in.name.strip()
+    if hospital_in.slug is not None:
+        new_slug = slugify(hospital_in.slug)
+        # Check slug uniqueness if changed
+        if new_slug != hospital.slug:
+            existing = await db.scalar(select(Hospital).where(Hospital.slug == new_slug))
+            if existing:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Slug '{new_slug}' is already taken")
+            hospital.slug = new_slug
+    if hospital_in.address is not None:
+        hospital.address = hospital_in.address
+    if hospital_in.phone is not None:
+        hospital.phone = hospital_in.phone
+    if hospital_in.is_active is not None:
+        hospital.is_active = hospital_in.is_active
+
     await db.commit()
     await db.refresh(hospital)
 
@@ -291,3 +314,72 @@ async def update_hospital_status(
         queue_count=queue_count,
         created_at=hospital.created_at,
     )
+
+
+@router.delete(
+    "/hospitals/{hospital_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Delete Hospital Tenant & Cascade Data (Super Admin)",
+)
+async def delete_hospital(
+    hospital_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: StaffUser = Depends(require_roles(UserRole.SUPER_ADMIN)),
+) -> Any:
+    """
+    Safely purge a hospital tenant and its associated entities:
+    tokens, audit logs, queues, rooms, departments, staff accounts, branches, and hospital.
+    """
+    from app.models import QueueToken, QueueAuditLog
+    from sqlalchemy import delete
+
+    hospital = await db.scalar(select(Hospital).where(Hospital.id == hospital_id))
+    if not hospital:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hospital tenant not found")
+
+    hospital_name = hospital.name
+
+    # 1. Fetch queue IDs in hospital
+    queues = (await db.scalars(
+        select(Queue)
+        .join(Department, Queue.department_id == Department.id)
+        .join(Branch, Department.branch_id == Branch.id)
+        .where(Branch.hospital_id == hospital_id)
+    )).all()
+    queue_ids = [q.id for q in queues]
+
+    # 2. Delete queue audit logs & tokens
+    if queue_ids:
+        await db.execute(delete(QueueAuditLog).where(QueueAuditLog.queue_id.in_(queue_ids)))
+        await db.execute(delete(QueueToken).where(QueueToken.queue_id.in_(queue_ids)))
+
+    # 3. Delete queues
+    if queue_ids:
+        await db.execute(delete(Queue).where(Queue.id.in_(queue_ids)))
+
+    # 4. Fetch department IDs
+    depts = (await db.scalars(
+        select(Department)
+        .join(Branch, Department.branch_id == Branch.id)
+        .where(Branch.hospital_id == hospital_id)
+    )).all()
+    dept_ids = [d.id for d in depts]
+
+    # 5. Delete rooms & departments
+    if dept_ids:
+        await db.execute(delete(Room).where(Room.department_id.in_(dept_ids)))
+        await db.execute(delete(Department).where(Department.id.in_(dept_ids)))
+
+    # 6. Delete staff users for this hospital
+    await db.execute(delete(StaffUser).where(StaffUser.hospital_id == hospital_id))
+
+    # 7. Delete branches & hospital
+    await db.execute(delete(Branch).where(Branch.hospital_id == hospital_id))
+    await db.delete(hospital)
+    await db.commit()
+
+    return {
+        "status": "success",
+        "message": f"Hospital '{hospital_name}' and all associated departments, staff, and queues have been permanently deleted.",
+        "deleted_hospital_id": str(hospital_id),
+    }
