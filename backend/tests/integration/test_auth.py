@@ -2,21 +2,35 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Hospital, StaffUser, UserRole
-from app.core.security import get_password_hash
+from app.core.security import get_password_hash, create_access_token
 
 
 @pytest.mark.asyncio
 async def test_auth_flows(client: AsyncClient, db_session: AsyncSession):
     """Verify staff registration, login, profile fetch, and credential enforcement."""
-    # 1. Create a hospital
+    # 1. Create a hospital and admin user
     hospital = Hospital(
         name="Apex Hospital",
         slug="apex-hospital",
     )
     db_session.add(hospital)
+    await db_session.flush()
+
+    admin = StaffUser(
+        hospital_id=hospital.id,
+        email="admin@apex-hospital.com",
+        hashed_password=get_password_hash("AdminPass123!"),
+        full_name="Hospital Administrator",
+        role=UserRole.HOSPITAL_ADMIN,
+        is_active=True,
+    )
+    db_session.add(admin)
     await db_session.commit()
 
-    # 2. Register staff member via API
+    admin_token = create_access_token(str(admin.id), "HOSPITAL_ADMIN", str(hospital.id))
+    admin_headers = {"Authorization": f"Bearer {admin_token}"}
+
+    # 2. Register staff member via API (using admin credentials)
     register_payload = {
         "hospital_id": str(hospital.id),
         "email": "doctor.apex@hospital.com",
@@ -26,14 +40,14 @@ async def test_auth_flows(client: AsyncClient, db_session: AsyncSession):
         "role": "DOCTOR",
         "is_active": True,
     }
-    reg_response = await client.post("/api/v1/auth/register-staff", json=register_payload)
+    reg_response = await client.post("/api/v1/auth/register-staff", json=register_payload, headers=admin_headers)
     assert reg_response.status_code == 201
     user_data = reg_response.json()
     assert user_data["email"] == "doctor.apex@hospital.com"
     assert user_data["role"] == "DOCTOR"
 
     # 3. Duplicate email registration fails
-    dup_response = await client.post("/api/v1/auth/register-staff", json=register_payload)
+    dup_response = await client.post("/api/v1/auth/register-staff", json=register_payload, headers=admin_headers)
     assert dup_response.status_code == 400
 
     # 4. Login with valid JSON credentials
@@ -82,7 +96,7 @@ async def test_rbac_and_inactive_user_guards(client: AsyncClient, db_session: As
     inactive_user = StaffUser(
         hospital_id=hospital.id,
         email="inactive.reception@clinic.com",
-        hashed_password=get_password_hash("Pass12345!"),
+        hashed_password=get_password_hash("Pass12345!#"),
         full_name="Inactive Staff",
         role=UserRole.RECEPTIONIST,
         is_active=False,
@@ -93,8 +107,42 @@ async def test_rbac_and_inactive_user_guards(client: AsyncClient, db_session: As
     # Attempt login with inactive account
     login_resp = await client.post(
         "/api/v1/auth/login/json",
-        json={"email": "inactive.reception@clinic.com", "password": "Pass12345!"},
+        json={"email": "inactive.reception@clinic.com", "password": "Pass12345!#"},
     )
-    assert login_resp.status_code == 400
-    assert "Inactive" in login_resp.json()["detail"]
+    assert login_resp.status_code == 403
+    assert "deactivated" in login_resp.json()["detail"].lower()
 
+
+@pytest.mark.asyncio
+async def test_hospital_self_registration_flow(client: AsyncClient, db_session: AsyncSession):
+    """Verify public onboarding endpoint /api/v1/auth/register-hospital."""
+    # 1. Weak password fails
+    weak_payload = {
+        "hospital_name": "Sunrise Multispecialty Hospital",
+        "admin_name": "Dr. Ananya Roy",
+        "admin_email": "ananya@sunrisehealth.org",
+        "admin_password": "weak",
+    }
+    weak_resp = await client.post("/api/v1/auth/register-hospital", json=weak_payload)
+    assert weak_resp.status_code == 422
+
+    # 2. Valid registration succeeds
+    valid_payload = {
+        "hospital_name": "Sunrise Multispecialty Hospital",
+        "admin_name": "Dr. Ananya Roy",
+        "admin_email": "ananya@sunrisehealth.org",
+        "admin_password": "SecurePass2026!#",
+        "phone_number": "+91 98765 00000",
+        "address": "Bandra West, Mumbai",
+    }
+    reg_resp = await client.post("/api/v1/auth/register-hospital", json=valid_payload)
+    assert reg_resp.status_code == 201
+    data = reg_resp.json()
+    assert "access_token" in data
+    assert data["user"]["email"] == "ananya@sunrisehealth.org"
+    assert data["user"]["role"] == "HOSPITAL_ADMIN"
+
+    # 3. Duplicate email registration fails
+    dup_resp = await client.post("/api/v1/auth/register-hospital", json=valid_payload)
+    assert dup_resp.status_code == 400
+    assert "already exists" in dup_resp.json()["detail"]

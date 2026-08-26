@@ -74,6 +74,26 @@ export const api = {
       }
       return data;
     },
+    registerHospital: async (payload: {
+      hospital_name: string;
+      admin_name: string;
+      admin_email: string;
+      admin_password: string;
+      phone_number?: string;
+      address?: string;
+      tagline?: string;
+    }) => {
+      const data = await request<{ access_token: string; user: StaffUser }>("/auth/register-hospital", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      if (typeof window !== "undefined" && data.access_token) {
+        localStorage.setItem("hqms_staff_token", data.access_token);
+        localStorage.setItem("hqms_user_role", data.user.role);
+        localStorage.setItem("hqms_user", JSON.stringify(data.user));
+      }
+      return data;
+    },
     logout: () => {
       if (typeof window !== "undefined") {
         localStorage.removeItem("hqms_staff_token");
