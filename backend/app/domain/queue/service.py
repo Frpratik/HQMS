@@ -111,6 +111,10 @@ class QueueDomainService:
         if not queue:
             raise ValueError(f"Queue {queue_id} not found")
 
+        # If queue is paused, automatically resume it upon calling a patient
+        if queue.status == QueueStatus.PAUSED:
+            await self.resume_queue(queue_id=queue_id, actor_user_id=actor_user_id)
+
         # Check for currently CALLED or SERVING tokens
         current_active_res = await self.db.scalars(
             select(QueueToken)
@@ -171,6 +175,14 @@ class QueueDomainService:
     ) -> QueueToken:
         """Doctor begins consultation: transitions CALLED -> SERVING."""
         token = await self._get_token_for_update(token_id)
+        
+        # If queue is paused, automatically resume it upon starting consultation
+        queue = await self.db.scalar(
+            select(Queue).where(Queue.id == token.queue_id).with_for_update()
+        )
+        if queue and queue.status == QueueStatus.PAUSED:
+            await self.resume_queue(queue_id=token.queue_id, actor_user_id=actor_user_id)
+
         QueueStateMachine.validate_transition(token.status, TokenStatus.SERVING)
         from_st = token.status
         token.status = TokenStatus.SERVING

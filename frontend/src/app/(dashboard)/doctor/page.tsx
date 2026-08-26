@@ -455,7 +455,7 @@ export default function DoctorConsolePage() {
                   className="py-4 px-8 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-black text-base rounded-2xl shadow-sm transition inline-flex items-center space-x-2.5"
                 >
                   <PhoneCall className="w-5 h-5" />
-                  <span>CALL FIRST PATIENT</span>
+                  <span>CALL PATIENT</span>
                 </button>
               </div>
             )}
