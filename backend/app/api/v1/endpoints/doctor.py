@@ -18,6 +18,67 @@ from app.api.deps import get_current_active_user, require_roles
 router = APIRouter()
 
 
+async def _verify_doctor_queue(queue_id: uuid.UUID, current_user: StaffUser, db: AsyncSession) -> Queue:
+    """Verifies that the queue belongs to the current user's hospital and assigned doctor."""
+    query = (
+        select(Queue)
+        .join(Department, Queue.department_id == Department.id)
+        .join(Branch, Department.branch_id == Branch.id)
+        .where(Queue.id == queue_id)
+    )
+    if current_user.role == UserRole.SUPER_ADMIN:
+        queue = await db.scalar(query)
+    elif current_user.role in (UserRole.HOSPITAL_ADMIN,):
+        queue = await db.scalar(query.where(Branch.hospital_id == current_user.hospital_id))
+    elif current_user.role in (UserRole.DOCTOR, UserRole.DOCTOR_ASSISTANT):
+        queue = await db.scalar(
+            query.where(
+                Branch.hospital_id == current_user.hospital_id,
+                Queue.doctor_user_id == current_user.id,
+            )
+        )
+    else:
+        queue = None
+
+    if not queue:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Queue not found or not authorized for this physician account",
+        )
+    return queue
+
+
+async def _verify_doctor_token(token_id: uuid.UUID, current_user: StaffUser, db: AsyncSession) -> QueueToken:
+    """Verifies that the token belongs to the current user's authorized queue."""
+    query = (
+        select(QueueToken)
+        .join(Queue, QueueToken.queue_id == Queue.id)
+        .join(Department, Queue.department_id == Department.id)
+        .join(Branch, Department.branch_id == Branch.id)
+        .where(QueueToken.id == token_id)
+    )
+    if current_user.role == UserRole.SUPER_ADMIN:
+        token = await db.scalar(query)
+    elif current_user.role in (UserRole.HOSPITAL_ADMIN, UserRole.RECEPTIONIST):
+        token = await db.scalar(query.where(Branch.hospital_id == current_user.hospital_id))
+    elif current_user.role in (UserRole.DOCTOR, UserRole.DOCTOR_ASSISTANT):
+        token = await db.scalar(
+            query.where(
+                Branch.hospital_id == current_user.hospital_id,
+                Queue.doctor_user_id == current_user.id,
+            )
+        )
+    else:
+        token = None
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Token not found or unauthorized for this physician account",
+        )
+    return token
+
+
 @router.post("/queues/{queue_id}/call-next", response_model=Optional[QueueTokenOut], summary="1-Click Call Next Patient")
 async def call_next_patient(
     queue_id: uuid.UUID,
@@ -28,16 +89,7 @@ async def call_next_patient(
     """
     Doctor 1-click action: Completes currently serving patient and calls the next eligible patient in queue.
     """
-    # Verify tenant ownership
-    if current_user.role != UserRole.SUPER_ADMIN:
-        queue = await db.scalar(
-            select(Queue)
-            .join(Queue.department)
-            .join(Department.branch)
-            .where(Queue.id == queue_id, Branch.hospital_id == current_user.hospital_id)
-        )
-        if not queue:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Queue not found in this hospital")
+    await _verify_doctor_queue(queue_id, current_user, db)
 
     service = QueueDomainService(db)
     next_token = await service.call_next(
@@ -51,7 +103,6 @@ async def call_next_patient(
     return next_token
 
 
-
 @router.post("/tokens/{token_id}/start-serving", response_model=QueueTokenOut, summary="Doctor Starts Consultation")
 async def start_serving_patient(
     token_id: uuid.UUID,
@@ -61,6 +112,8 @@ async def start_serving_patient(
     """
     Transitions token from CALLED to SERVING when patient enters doctor's room.
     """
+    await _verify_doctor_token(token_id, current_user, db)
+
     service = QueueDomainService(db)
     token = await service.mark_serving(token_id=token_id, actor_user_id=current_user.id)
     await db.commit()
@@ -77,6 +130,8 @@ async def complete_consultation(
     """
     Finishes patient consultation (SERVING -> COMPLETED).
     """
+    await _verify_doctor_token(token_id, current_user, db)
+
     service = QueueDomainService(db)
     token = await service.complete_token(token_id=token_id, actor_user_id=current_user.id)
     await db.commit()
@@ -93,6 +148,8 @@ async def skip_patient(
     """
     Skips called patient (CALLED -> SKIPPED).
     """
+    await _verify_doctor_token(token_id, current_user, db)
+
     service = QueueDomainService(db)
     token = await service.skip_token(token_id=token_id, actor_user_id=current_user.id)
     await db.commit()
@@ -109,6 +166,8 @@ async def mark_patient_missed(
     """
     Marks patient as missed when they fail to respond (CALLED -> MISSED).
     """
+    await _verify_doctor_token(token_id, current_user, db)
+
     service = QueueDomainService(db)
     token = await service.mark_missed(token_id=token_id, actor_user_id=current_user.id)
     await db.commit()
@@ -125,6 +184,8 @@ async def rejoin_missed_patient(
     """
     Re-inserts a missed patient back into the active queue according to rejoin policy.
     """
+    await _verify_doctor_token(token_id, current_user, db)
+
     service = QueueDomainService(db)
     token = await service.rejoin_queue(token_id=token_id, actor_user_id=current_user.id)
     await db.commit()
@@ -142,6 +203,8 @@ async def pause_queue_endpoint(
     """
     Pauses queue operations, recording the reason and expected resumption time.
     """
+    await _verify_doctor_queue(queue_id, current_user, db)
+
     service = QueueDomainService(db)
     await service.pause_queue(
         queue_id=queue_id,
@@ -164,6 +227,8 @@ async def resume_queue_endpoint(
     """
     Resumes active queue operations.
     """
+    await _verify_doctor_queue(queue_id, current_user, db)
+
     service = QueueDomainService(db)
     queue = await service.resume_queue(queue_id=queue_id, actor_user_id=current_user.id)
     await db.commit()

@@ -1,5 +1,5 @@
 import uuid
-from typing import List, Callable
+from typing import List, Callable, Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 import jwt
@@ -15,6 +15,11 @@ oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/auth/login"
 )
 
+oauth2_scheme_optional = OAuth2PasswordBearer(
+    tokenUrl=f"{settings.API_V1_STR}/auth/login",
+    auto_error=False,
+)
+
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -24,7 +29,7 @@ async def get_current_user(
     Validates JWT token and resolves the authenticated StaffUser.
     """
     credentials_exception = HTTPException(
-        status_code=status.HTTP_01_UNAUTHORIZED if hasattr(status, "HTTP_01_UNAUTHORIZED") else status.HTTP_401_UNAUTHORIZED,
+        status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
@@ -59,6 +64,29 @@ async def get_current_active_user(
     return current_user
 
 
+async def get_optional_current_user(
+    token: Optional[str] = Depends(oauth2_scheme_optional),
+    db: AsyncSession = Depends(get_db),
+) -> Optional[StaffUser]:
+    """
+    Resolves StaffUser if Authorization Bearer header is present and valid; otherwise returns None.
+    """
+    if not token:
+        return None
+    try:
+        payload = decode_access_token(token)
+        user_id_str: str = payload.get("sub")
+        if not user_id_str:
+            return None
+        user_id = uuid.UUID(user_id_str)
+        user = await db.scalar(
+            select(StaffUser).where(StaffUser.id == user_id, StaffUser.is_active == True)
+        )
+        return user
+    except Exception:
+        return None
+
+
 def require_roles(*allowed_roles: UserRole) -> Callable:
     """
     Dependency factory enforcing Role-Based Access Control (RBAC).
@@ -88,4 +116,3 @@ async def get_current_tenant_id(
             detail="Staff account is not associated with an active hospital tenant.",
         )
     return uuid.UUID(str(current_user.hospital_id)) if isinstance(current_user.hospital_id, str) else current_user.hospital_id
-

@@ -275,26 +275,39 @@ export default function DoctorConsolePage() {
       {/* ============================================================ */}
       {/* MAIN CLINICAL WORKSPACE                                      */}
       {/* ============================================================ */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* LEFT 2 COLUMNS: ACTIVE CONSULTATION COMMAND CENTER */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Pause Banner */}
-          {isPaused && (
-            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 flex items-center justify-between text-amber-950 shadow-xs">
-              <div className="flex items-center space-x-3">
-                <AlertCircle className="w-5 h-5 text-amber-700 shrink-0" />
-                <span className="text-xs sm:text-sm font-bold">
-                  Queue is currently PAUSED. Patient mobile trackers show procedure pause notice.
-                </span>
-              </div>
-              <button
-                onClick={handleResumeQueue}
-                className="px-3 py-1.5 bg-amber-800 hover:bg-amber-900 text-white font-bold rounded-lg text-xs transition"
-              >
-                Resume Now
-              </button>
+      {!loading && queues.length === 0 ? (
+        <main className="flex-1 max-w-xl w-full mx-auto p-6 flex flex-col items-center justify-center text-center my-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-10 shadow-sm space-y-4">
+            <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center mx-auto">
+              <Stethoscope className="w-8 h-8" />
             </div>
-          )}
+            <h2 className="text-xl font-black text-slate-900">No Consultation Queue Assigned</h2>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Your physician account does not have an active OPD consultation queue assigned yet. Please contact your Hospital Administrator to deploy or assign a queue to your doctor profile in the Operations Console.
+            </p>
+          </div>
+        </main>
+      ) : (
+        <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* LEFT 2 COLUMNS: ACTIVE CONSULTATION COMMAND CENTER */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Pause Banner */}
+            {isPaused && (
+              <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 flex items-center justify-between text-amber-950 shadow-xs">
+                <div className="flex items-center space-x-3">
+                  <AlertCircle className="w-5 h-5 text-amber-700 shrink-0" />
+                  <span className="text-xs sm:text-sm font-bold">
+                    Queue is currently PAUSED. Patient mobile trackers show procedure pause notice.
+                  </span>
+                </div>
+                <button
+                  onClick={handleResumeQueue}
+                  className="px-3 py-1.5 bg-amber-800 hover:bg-amber-900 text-white font-bold rounded-lg text-xs transition"
+                >
+                  Resume Now
+                </button>
+              </div>
+            )}
 
           {/* Core Consultation Stage Card */}
           <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm">
@@ -525,6 +538,7 @@ export default function DoctorConsolePage() {
           </div>
         </div>
       </main>
+      )}
 
       {/* ============================================================ */}
       {/* MODAL: PAUSE QUEUE DIALOG                                    */}

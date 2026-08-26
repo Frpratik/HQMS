@@ -1,5 +1,5 @@
 import uuid
-from typing import List, Any
+from typing import List, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
@@ -8,6 +8,7 @@ from app.core.database import get_db
 from app.models import (
     Hospital,
     Department,
+    Branch,
     Queue,
     Patient,
     Visit,
@@ -16,6 +17,7 @@ from app.models import (
     UserRole,
     TokenStatus,
     QueueStatus,
+    Gender,
 )
 from app.schemas.queue import (
     QueueTokenCreateWalkIn,
@@ -25,7 +27,7 @@ from app.schemas.queue import (
 )
 from app.schemas.patient import PatientOut
 from app.domain.queue.service import QueueDomainService
-from app.api.deps import get_current_active_user, require_roles
+from app.api.deps import get_current_active_user, get_optional_current_user, require_roles
 
 router = APIRouter()
 
@@ -38,15 +40,25 @@ async def issue_walk_in_token(
 ) -> Any:
     """
     Receptionist workflow: Registers patient (if new), creates visit, and atomically generates token.
+    Enforces hospital tenant isolation.
     """
-    # 1. Verify Queue
-    queue = await db.scalar(select(Queue).where(Queue.id == walkin_in.queue_id))
+    # 1. Verify Queue belongs to receptionist's hospital
+    query = (
+        select(Queue)
+        .join(Department, Queue.department_id == Department.id)
+        .join(Branch, Department.branch_id == Branch.id)
+        .where(Queue.id == walkin_in.queue_id)
+    )
+    if current_user.role != UserRole.SUPER_ADMIN:
+        query = query.where(Branch.hospital_id == current_user.hospital_id)
+
+    queue = await db.scalar(query)
     if not queue:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Queue not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Queue not found in this hospital")
     if queue.status == QueueStatus.CLOSED:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot issue token for a closed queue")
 
-    # 2. Find or create patient
+    # 2. Find or create patient within this hospital
     h_id = uuid.UUID(str(current_user.hospital_id)) if current_user.hospital_id else queue.id
     b_id = uuid.UUID(str(current_user.branch_id)) if current_user.branch_id else None
     
@@ -86,7 +98,6 @@ async def issue_walk_in_token(
     service = QueueDomainService(db)
     token = await service.create_token(
         queue_id=queue.id,
-
         visit_id=visit.id,
         patient_id=patient.id,
         priority=walkin_in.priority,
@@ -98,18 +109,36 @@ async def issue_walk_in_token(
     return token
 
 
-@router.get("/queues/{queue_id}/summary", response_model=QueueSummaryOut, summary="Get Live Reception Queue Summary")
+@router.get("/queues/{queue_id}/summary", response_model=QueueSummaryOut, summary="Get Live Queue Summary")
 async def get_reception_queue_summary(
     queue_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: StaffUser = Depends(get_current_active_user),
+    current_user: Optional[StaffUser] = Depends(get_optional_current_user),
 ) -> Any:
     """
-    Returns full live queue dashboard for receptionists, including active tokens, counts, and serving status.
+    Returns full live queue dashboard with role & tenant isolation:
+    - Super Admin & Public TV: can view summary
+    - Receptionist / Hospital Admin: can view any queue in their hospital
+    - Doctor: can ONLY view queues assigned to them
     """
-    queue = await db.scalar(select(Queue).where(Queue.id == queue_id))
+    query = (
+        select(Queue)
+        .join(Department, Queue.department_id == Department.id)
+        .join(Branch, Department.branch_id == Branch.id)
+        .where(Queue.id == queue_id)
+    )
+    if current_user:
+        if current_user.role in (UserRole.HOSPITAL_ADMIN, UserRole.RECEPTIONIST):
+            query = query.where(Branch.hospital_id == current_user.hospital_id)
+        elif current_user.role in (UserRole.DOCTOR, UserRole.DOCTOR_ASSISTANT):
+            query = query.where(
+                Branch.hospital_id == current_user.hospital_id,
+                Queue.doctor_user_id == current_user.id,
+            )
+
+    queue = await db.scalar(query)
     if not queue:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Queue not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Queue not found or access denied")
 
     tokens_res = await db.scalars(
         select(QueueToken)

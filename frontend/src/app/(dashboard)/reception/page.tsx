@@ -217,10 +217,23 @@ export default function ReceptionDashboardPage() {
       {/* ============================================================ */}
       {/* MAIN CONTENT WORKSPACE                                       */}
       {/* ============================================================ */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
-        {/* DOCTOR UNAVAILABLE / QUEUE PAUSED ALERT BANNER */}
-        {isPaused && (
-          <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border border-amber-300 shadow-xs flex items-start sm:items-center justify-between gap-4 text-amber-950 animate-fade-in">
+      {!loading && queues.length === 0 ? (
+        <main className="flex-1 max-w-xl w-full mx-auto p-6 flex flex-col items-center justify-center text-center my-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-10 shadow-sm space-y-4">
+            <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center mx-auto">
+              <Users className="w-8 h-8" />
+            </div>
+            <h2 className="text-xl font-black text-slate-900">No OPD Queues Found in Hospital</h2>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              There are no active OPD consultation queues deployed in your hospital yet. Please contact your Hospital Administrator to deploy a queue in the Operations Console.
+            </p>
+          </div>
+        </main>
+      ) : (
+        <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+          {/* DOCTOR UNAVAILABLE / QUEUE PAUSED ALERT BANNER */}
+          {isPaused && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border border-amber-300 shadow-xs flex items-start sm:items-center justify-between gap-4 text-amber-950 animate-fade-in">
             <div className="flex items-center space-x-3.5">
               <div className="w-10 h-10 rounded-xl bg-amber-200/80 flex items-center justify-center shrink-0 text-amber-800">
                 <AlertTriangle className="w-5 h-5" />
@@ -474,6 +487,7 @@ export default function ReceptionDashboardPage() {
           </div>
         </div>
       </main>
+      )}
 
       {/* ============================================================ */}
       {/* MODAL: WALK-IN TOKEN REGISTRATION FORM                       */}
