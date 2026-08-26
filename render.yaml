@@ -20,6 +20,12 @@ services:
       - key: NOTIFICATION_PROVIDER
         value: "fast2sms"
       - key: FAST2SMS_API_KEY
-        value: "8IkjR7Ti0sBNDmUtEY9JSwe2OvflH5VyQM3c6GduPrqbnxaAgWAO3S6VD0cNEUgCm7fG9wyR1hHzepQF"
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAILS_FROM_EMAIL
+        value: "onboarding@resend.dev"
+      - key: EMAILS_FROM_NAME
+        value: "HQMS Clinical Network"
       - key: BACKEND_CORS_ORIGINS
         value: "https://*,http://localhost:3000"
