@@ -16,6 +16,10 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
-        sync: false
+        value: "postgresql+asyncpg://neondb_owner:npg_EDIJlB68iFOy@ep-floral-wildflower-axxa793r-pooler.c-4.us-east-2.aws.neon.tech/neondb?ssl=require"
+      - key: NOTIFICATION_PROVIDER
+        value: "fast2sms"
+      - key: FAST2SMS_API_KEY
+        value: "8IkjR7Ti0sBNDmUtEY9JSwe2OvflH5VyQM3c6GduPrqbnxaAgWAO3S6VD0cNEUgCm7fG9wyR1hHzepQF"
       - key: BACKEND_CORS_ORIGINS
         value: "https://*,http://localhost:3000"

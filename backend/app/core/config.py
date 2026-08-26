@@ -28,7 +28,23 @@ class Settings(BaseSettings):
     @classmethod
     def assemble_db_connection(cls, v: str | None, info) -> str:
         if isinstance(v, str) and v:
-            return v
+            url = v.strip()
+            # Normalize driver for async SQLAlchemy
+            if url.startswith("postgres://"):
+                url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+            elif url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
+                url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+            # asyncpg requires ssl=require rather than sslmode=require
+            if "sslmode=" in url:
+                url = url.replace("sslmode=require", "ssl=require").replace("sslmode=prefer", "ssl=prefer")
+            if "channel_binding=" in url:
+                # Remove channel_binding parameter
+                import re
+                url = re.sub(r"[?&]channel_binding=[^&]+", "", url)
+                if "?" not in url and "&" in url:
+                    url = url.replace("&", "?", 1)
+            return url
         data = info.data
         server = data.get("POSTGRES_SERVER", "localhost")
         if server and server != "localhost":
