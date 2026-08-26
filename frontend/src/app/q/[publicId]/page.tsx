@@ -32,7 +32,35 @@ export default function PatientLiveQueuePage() {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  const [notifPermission, setNotifPermission] = useState<string>("default");
   const prevStatusRef = useRef<string | null>(null);
+
+  // Register Service Worker and check notification permission
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js").catch(() => {});
+      }
+      if ("Notification" in window) {
+        setNotifPermission(Notification.permission);
+      }
+    }
+  }, []);
+
+  const requestNotifPermission = async () => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      try {
+        const perm = await Notification.requestPermission();
+        setNotifPermission(perm);
+        if (perm === "granted") {
+          new Notification("🔔 Turn Notifications Active", {
+            body: `You will receive instant lockscreen alerts for Token ${tokenView?.token_display_number || ""}.`,
+            icon: "/favicon.ico",
+          });
+        }
+      } catch (e) {}
+    }
+  };
 
   const fetchToken = useCallback(async () => {
     if (!publicId) return;
@@ -42,10 +70,16 @@ export default function PatientLiveQueuePage() {
       setError(null);
       setLastRefreshed(new Date());
 
-      // Trigger tactile vibration on transition to CALLED
+      // Trigger tactile vibration & lockscreen notification on transition to CALLED
       if (prevStatusRef.current && prevStatusRef.current !== "CALLED" && data.status === "CALLED") {
         if (typeof window !== "undefined" && "vibrate" in navigator) {
           navigator.vibrate([200, 100, 200, 100, 400]);
+        }
+        if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+          new Notification("🚨 YOUR TURN IS CALLED!", {
+            body: `Token ${data.token_display_number}: Please proceed immediately to ${data.room_number || "Doctor Room"}.`,
+            icon: "/favicon.ico",
+          });
         }
       }
       prevStatusRef.current = data.status;
@@ -396,6 +430,29 @@ export default function PatientLiveQueuePage() {
             </div>
           </div>
         </div>
+
+        {/* ============================================================ */}
+        {/* LOCKSCREEN NOTIFICATIONS OPT-IN (100% FREE & UNLIMITED)      */}
+        {/* ============================================================ */}
+        {notifPermission !== "granted" && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 shadow-xs flex items-center justify-between gap-3">
+            <div className="flex items-center space-x-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <BellRing className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <span className="font-bold text-xs text-slate-900 block">Get Lockscreen Turn Alerts</span>
+                <span className="text-[10px] text-slate-500 block">Pings your phone even when locked</span>
+              </div>
+            </div>
+            <button
+              onClick={requestNotifPermission}
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs shrink-0 transition active:scale-95"
+            >
+              Enable
+            </button>
+          </div>
+        )}
 
         {/* ============================================================ */}
         {/* STEPPING AWAY CONTROLS (HIGH ACCESSIBILITY TAP TARGET)        */}
