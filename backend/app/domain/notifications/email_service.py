@@ -29,7 +29,30 @@ class EmailService:
             logger.warning("Empty recipient email address; skipping email dispatch.")
             return False
 
-        # 1. Resend API Dispatch
+        # 1. SMTP Dispatch (e.g. Gmail SMTP, AWS SES, Custom SMTP)
+        if settings.SMTP_HOST and settings.SMTP_USER and settings.SMTP_PASSWORD:
+            try:
+                msg = MIMEMultipart("alternative")
+                msg["Subject"] = subject
+                msg["From"] = f"{settings.EMAILS_FROM_NAME} <{settings.EMAILS_FROM_EMAIL}>"
+                msg["To"] = to_email
+
+                if text_content:
+                    msg.attach(MIMEText(text_content, "plain"))
+                msg.attach(MIMEText(html_content, "html"))
+
+                with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+                    if settings.SMTP_TLS:
+                        server.starttls()
+                    server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                    server.sendmail(settings.EMAILS_FROM_EMAIL, to_email, msg.as_string())
+
+                logger.info(f"[Gmail SMTP] Successfully dispatched email to {to_email}: {subject}")
+                return True
+            except Exception as e:
+                logger.error(f"[Gmail SMTP] Exception during dispatch: {e}")
+
+        # 2. Resend API Dispatch
         if settings.RESEND_API_KEY:
             try:
                 url = "https://api.resend.com/emails"
@@ -53,29 +76,6 @@ class EmailService:
                         logger.error(f"[Resend Email] API Error: {res.text}")
             except Exception as e:
                 logger.error(f"[Resend Email] Exception during dispatch: {e}")
-
-        # 2. SMTP Dispatch (if SMTP_HOST configured)
-        if settings.SMTP_HOST and settings.SMTP_USER and settings.SMTP_PASSWORD:
-            try:
-                msg = MIMEMultipart("alternative")
-                msg["Subject"] = subject
-                msg["From"] = f"{settings.EMAILS_FROM_NAME} <{settings.EMAILS_FROM_EMAIL}>"
-                msg["To"] = to_email
-
-                if text_content:
-                    msg.attach(MIMEText(text_content, "plain"))
-                msg.attach(MIMEText(html_content, "html"))
-
-                with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-                    if settings.SMTP_TLS:
-                        server.starttls()
-                    server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-                    server.sendmail(settings.EMAILS_FROM_EMAIL, to_email, msg.as_string())
-
-                logger.info(f"[SMTP Email] Successfully dispatched to {to_email}: {subject}")
-                return True
-            except Exception as e:
-                logger.error(f"[SMTP Email] Exception: {e}")
 
         # 3. Fallback: Console Mock Logger
         logger.info(f"\n{'='*60}\n[MOCK EMAIL DISPATCH]\nTo: {to_email}\nSubject: {subject}\n\n{text_content or html_content}\n{'='*60}")
