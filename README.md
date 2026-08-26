@@ -16,7 +16,7 @@
 
 - **🏢 Multi-Tenant Data & Security Isolation**: Manage unlimited hospital tenants on a single shared codebase with absolute data isolation, independent token sequence counters, and scoped RBAC boundaries.
 - **🛡️ Isolated Super Admin Platform Gateway**: Secret master portal (`/platform-control/login`) with 1-click hospital provisioning, metadata editing, tenant suspension, and cascade deletion.
-- **🏥 Hospital Admin Operations Suite**: Self-service management of clinical branches, departments, consultation rooms, doctor/receptionist invitations, and live OPD queue deployments.
+- **🏥 Hospital Admin Full CRUD Operations Suite**: Self-service management with complete Create, Read, Update, and Delete (CRUD) controls for clinical departments, consultation rooms, doctor/receptionist directory & password resets, and live OPD queue deployments.
 - **✉️ Automated Single-Email Dispatch Engine**: Built-in Gmail SMTP engine sending welcome emails to new hospital admins and role-specific invitation credentials to Doctors & Receptionists.
 - **📱 Zero-Install Patient Live Queue Tracker**: Patients track their turn on mobile web via unguessable, secure public URLs (`/q/:publicId`) with live ETA windows, audio chimes, and "Stepping Away" / "Returning" presence signals.
 - **🩺 1-Click Doctor Workstation**: Fast consultation flow (`CALL PATIENT`, `Start Serving`, `Complete`, `Skip`, `Did Not Appear`). Automatically resumes paused queues when calling patients.
