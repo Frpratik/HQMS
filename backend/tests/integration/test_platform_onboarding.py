@@ -87,11 +87,24 @@ async def test_platform_super_admin_provisioning_workflow(client: AsyncClient, d
     )
     assert forbidden_resp.status_code == 403
 
-    # 7. Super Admin suspends the tenant
-    status_resp = await client.patch(
-        f"/api/v1/platform/hospitals/{new_hosp_id}/status",
-        json={"is_active": False},
+    # 7. Super Admin updates hospital profile and status
+    update_resp = await client.patch(
+        f"/api/v1/platform/hospitals/{new_hosp_id}",
+        json={"name": "Max Super Specialty Hospital (Updated)", "is_active": False},
         headers=super_headers,
     )
-    assert status_resp.status_code == 200
-    assert status_resp.json()["is_active"] is False
+    assert update_resp.status_code == 200
+    assert update_resp.json()["name"] == "Max Super Specialty Hospital (Updated)"
+    assert update_resp.json()["is_active"] is False
+
+    # 8. Super Admin deletes the hospital tenant (cascade purge)
+    del_resp = await client.delete(
+        f"/api/v1/platform/hospitals/{new_hosp_id}",
+        headers=super_headers,
+    )
+    assert del_resp.status_code == 200
+    assert del_resp.json()["status"] == "success"
+
+    # Verify hospital no longer in list
+    verify_list = await client.get("/api/v1/platform/hospitals", headers=super_headers)
+    assert not any(h["id"] == new_hosp_id for h in verify_list.json())

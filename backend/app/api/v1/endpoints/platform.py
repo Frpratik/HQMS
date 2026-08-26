@@ -330,7 +330,7 @@ async def delete_hospital(
     Safely purge a hospital tenant and its associated entities:
     tokens, audit logs, queues, rooms, departments, staff accounts, branches, and hospital.
     """
-    from app.models import QueueToken, QueueAuditLog
+    from app.models import QueueToken, QueueEvent, QueuePause
     from sqlalchemy import delete
 
     hospital = await db.scalar(select(Hospital).where(Hospital.id == hospital_id))
@@ -348,9 +348,10 @@ async def delete_hospital(
     )).all()
     queue_ids = [q.id for q in queues]
 
-    # 2. Delete queue audit logs & tokens
+    # 2. Delete queue events, pauses & tokens
     if queue_ids:
-        await db.execute(delete(QueueAuditLog).where(QueueAuditLog.queue_id.in_(queue_ids)))
+        await db.execute(delete(QueueEvent).where(QueueEvent.queue_id.in_(queue_ids)))
+        await db.execute(delete(QueuePause).where(QueuePause.queue_id.in_(queue_ids)))
         await db.execute(delete(QueueToken).where(QueueToken.queue_id.in_(queue_ids)))
 
     # 3. Delete queues
