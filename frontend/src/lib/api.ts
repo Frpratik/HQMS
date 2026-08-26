@@ -221,6 +221,19 @@ export const api = {
           body: JSON.stringify(data),
         }
       ),
+    updateDepartment: (deptId: string, data: { name?: string; code?: string }, hospitalId?: string) =>
+      request<DepartmentItem>(
+        hospitalId ? `/hospital-admin/departments/${deptId}?hospital_id=${hospitalId}` : `/hospital-admin/departments/${deptId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        }
+      ),
+    deleteDepartment: (deptId: string, hospitalId?: string) =>
+      request<{ status: string; message: string }>(
+        hospitalId ? `/hospital-admin/departments/${deptId}?hospital_id=${hospitalId}` : `/hospital-admin/departments/${deptId}`,
+        { method: "DELETE" }
+      ),
     createRoom: (data: { department_id: string; name: string; room_number: string }, hospitalId?: string) =>
       request<RoomItem>(
         hospitalId ? `/hospital-admin/rooms?hospital_id=${hospitalId}` : "/hospital-admin/rooms",
@@ -228,6 +241,19 @@ export const api = {
           method: "POST",
           body: JSON.stringify(data),
         }
+      ),
+    updateRoom: (roomId: string, data: { department_id?: string; name?: string; room_number?: string }, hospitalId?: string) =>
+      request<RoomItem>(
+        hospitalId ? `/hospital-admin/rooms/${roomId}?hospital_id=${hospitalId}` : `/hospital-admin/rooms/${roomId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        }
+      ),
+    deleteRoom: (roomId: string, hospitalId?: string) =>
+      request<{ status: string; message: string }>(
+        hospitalId ? `/hospital-admin/rooms/${roomId}?hospital_id=${hospitalId}` : `/hospital-admin/rooms/${roomId}`,
+        { method: "DELETE" }
       ),
     inviteStaff: (
       data: {
@@ -247,6 +273,30 @@ export const api = {
           body: JSON.stringify(data),
         }
       ),
+    updateStaff: (
+      userId: string,
+      data: {
+        full_name?: string;
+        email?: string;
+        phone_number?: string;
+        role?: UserRole;
+        is_active?: boolean;
+        password?: string;
+      },
+      hospitalId?: string
+    ) =>
+      request<StaffItem>(
+        hospitalId ? `/hospital-admin/staff/${userId}?hospital_id=${hospitalId}` : `/hospital-admin/staff/${userId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        }
+      ),
+    deleteStaff: (userId: string, hospitalId?: string) =>
+      request<{ status: string; message: string }>(
+        hospitalId ? `/hospital-admin/staff/${userId}?hospital_id=${hospitalId}` : `/hospital-admin/staff/${userId}`,
+        { method: "DELETE" }
+      ),
     createQueue: (
       data: {
         department_id: string;
@@ -264,6 +314,31 @@ export const api = {
           method: "POST",
           body: JSON.stringify(data),
         }
+      ),
+    updateQueue: (
+      queueId: string,
+      data: {
+        department_id?: string;
+        doctor_user_id?: string;
+        room_id?: string;
+        name?: string;
+        prefix?: string;
+        default_consult_time_min?: number;
+        status?: QueueStatus;
+      },
+      hospitalId?: string
+    ) =>
+      request<QueueItem>(
+        hospitalId ? `/hospital-admin/queues/${queueId}?hospital_id=${hospitalId}` : `/hospital-admin/queues/${queueId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        }
+      ),
+    deleteQueue: (queueId: string, hospitalId?: string) =>
+      request<{ status: string; message: string }>(
+        hospitalId ? `/hospital-admin/queues/${queueId}?hospital_id=${hospitalId}` : `/hospital-admin/queues/${queueId}`,
+        { method: "DELETE" }
       ),
   },
 };

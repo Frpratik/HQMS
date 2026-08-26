@@ -23,6 +23,10 @@ import {
   Check,
   Mail,
   X,
+  Edit2,
+  Trash2,
+  KeyRound,
+  AlertTriangle,
 } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import {
@@ -33,6 +37,7 @@ import {
   StaffItem,
   QueueItem,
   UserRole,
+  QueueStatus,
 } from "@/lib/api";
 
 type ActiveTab = "departments" | "staff" | "queues";
@@ -44,11 +49,25 @@ export default function HospitalAdminDepartmentsPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<ActiveTab>("departments");
 
-  // Modals
+  // Creation Modals
   const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
   const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
   const [isQueueModalOpen, setIsQueueModalOpen] = useState(false);
+
+  // Edit Modals
+  const [editingDept, setEditingDept] = useState<DepartmentItem | null>(null);
+  const [editingRoom, setEditingRoom] = useState<RoomItem | null>(null);
+  const [editingStaff, setEditingStaff] = useState<StaffItem | null>(null);
+  const [editingQueue, setEditingQueue] = useState<QueueItem | null>(null);
+
+  // Delete Confirmation Modals
+  const [deletingDept, setDeletingDept] = useState<DepartmentItem | null>(null);
+  const [deletingRoom, setDeletingRoom] = useState<RoomItem | null>(null);
+  const [deletingStaff, setDeletingStaff] = useState<StaffItem | null>(null);
+  const [deletingQueue, setDeletingQueue] = useState<QueueItem | null>(null);
+
+  // Staff Success Modal
   const [staffSuccess, setStaffSuccess] = useState<{
     id: string;
     full_name: string;
@@ -58,7 +77,7 @@ export default function HospitalAdminDepartmentsPage() {
   } | null>(null);
   const [copiedStaffKey, setCopiedStaffKey] = useState(false);
 
-  // Form states
+  // Form states for creation
   const [deptForm, setDeptForm] = useState({ name: "", code: "" });
   const [roomForm, setRoomForm] = useState({ department_id: "", name: "", room_number: "" });
   const [staffForm, setStaffForm] = useState({
@@ -75,6 +94,27 @@ export default function HospitalAdminDepartmentsPage() {
     name: "",
     prefix: "",
     default_consult_time_min: 10,
+  });
+
+  // Edit form states
+  const [editDeptForm, setEditDeptForm] = useState({ name: "", code: "" });
+  const [editRoomForm, setEditRoomForm] = useState({ department_id: "", name: "", room_number: "" });
+  const [editStaffForm, setEditStaffForm] = useState({
+    full_name: "",
+    email: "",
+    phone_number: "",
+    role: "DOCTOR" as UserRole,
+    is_active: true,
+    password: "",
+  });
+  const [editQueueForm, setEditQueueForm] = useState({
+    department_id: "",
+    doctor_user_id: "",
+    room_id: "",
+    name: "",
+    prefix: "",
+    default_consult_time_min: 10,
+    status: "OPEN" as QueueStatus,
   });
 
   const [actionLoading, setActionLoading] = useState(false);
@@ -102,6 +142,9 @@ export default function HospitalAdminDepartmentsPage() {
     fetchOverview();
   }, [isAuthorized]);
 
+  // ==========================================
+  // DEPARTMENT HANDLERS
+  // ==========================================
   const handleCreateDepartment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!deptForm.name || !deptForm.code) return;
@@ -118,21 +161,49 @@ export default function HospitalAdminDepartmentsPage() {
     }
   };
 
+  const handleUpdateDepartment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingDept) return;
+    try {
+      setActionLoading(true);
+      await api.hospitalAdmin.updateDepartment(editingDept.id, editDeptForm);
+      setEditingDept(null);
+      fetchOverview();
+    } catch (err: any) {
+      alert(`Error updating department: ${err.message}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteDepartment = async () => {
+    if (!deletingDept) return;
+    try {
+      setActionLoading(true);
+      await api.hospitalAdmin.deleteDepartment(deletingDept.id);
+      setDeletingDept(null);
+      fetchOverview();
+    } catch (err: any) {
+      alert(`Error deleting department: ${err.message}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ==========================================
+  // ROOM HANDLERS
+  // ==========================================
   const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault();
-    const deptId = roomForm.department_id || overview?.departments[0]?.id;
-    if (!roomForm.room_number || !deptId) {
-      alert("Please select a department and enter room number.");
-      return;
-    }
+    if (!roomForm.department_id || !roomForm.room_number) return;
     try {
       setActionLoading(true);
       await api.hospitalAdmin.createRoom({
-        ...roomForm,
-        department_id: deptId,
+        department_id: roomForm.department_id,
+        room_number: roomForm.room_number,
         name: roomForm.name || `Room ${roomForm.room_number}`,
       });
-      setRoomForm({ department_id: "", name: "", room_number: "" });
+      setRoomForm({ department_id: overview?.departments[0]?.id || "", name: "", room_number: "" });
       setIsRoomModalOpen(false);
       fetchOverview();
     } catch (err: any) {
@@ -142,41 +213,122 @@ export default function HospitalAdminDepartmentsPage() {
     }
   };
 
-  const handleCreateStaff = async (e: React.FormEvent) => {
+  const handleUpdateRoom = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!staffForm.full_name || !staffForm.email || !staffForm.password) return;
+    if (!editingRoom) return;
     try {
       setActionLoading(true);
-      const res = await api.hospitalAdmin.inviteStaff(staffForm);
-      setStaffSuccess({
-        id: res.id,
-        full_name: staffForm.full_name,
-        email: staffForm.email,
-        role: staffForm.role,
-        password: staffForm.password,
-      });
+      await api.hospitalAdmin.updateRoom(editingRoom.id, editRoomForm);
+      setEditingRoom(null);
       fetchOverview();
     } catch (err: any) {
-      alert(`Error creating staff member: ${err.message}`);
+      alert(`Error updating room: ${err.message}`);
     } finally {
       setActionLoading(false);
     }
   };
 
+  const handleDeleteRoom = async () => {
+    if (!deletingRoom) return;
+    try {
+      setActionLoading(true);
+      await api.hospitalAdmin.deleteRoom(deletingRoom.id);
+      setDeletingRoom(null);
+      fetchOverview();
+    } catch (err: any) {
+      alert(`Error deleting room: ${err.message}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ==========================================
+  // STAFF HANDLERS
+  // ==========================================
+  const handleInviteStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!staffForm.email || !staffForm.full_name || !staffForm.password) return;
+    try {
+      setActionLoading(true);
+      const res = await api.hospitalAdmin.inviteStaff(staffForm);
+      const tempCreds = {
+        id: res.id,
+        full_name: res.full_name,
+        email: res.email,
+        role: res.role,
+        password: staffForm.password,
+      };
+      setStaffForm({
+        full_name: "",
+        email: "",
+        password: "",
+        phone_number: "",
+        role: "DOCTOR" as UserRole,
+      });
+      setIsStaffModalOpen(false);
+      setStaffSuccess(tempCreds);
+      fetchOverview();
+    } catch (err: any) {
+      alert(`Error onboarding staff: ${err.message}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUpdateStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingStaff) return;
+    try {
+      setActionLoading(true);
+      const payload: any = {
+        full_name: editStaffForm.full_name,
+        email: editStaffForm.email,
+        phone_number: editStaffForm.phone_number,
+        role: editStaffForm.role,
+        is_active: editStaffForm.is_active,
+      };
+      if (editStaffForm.password && editStaffForm.password.length >= 6) {
+        payload.password = editStaffForm.password;
+      }
+      await api.hospitalAdmin.updateStaff(editingStaff.id, payload);
+      setEditingStaff(null);
+      fetchOverview();
+    } catch (err: any) {
+      alert(`Error updating staff member: ${err.message}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteStaff = async () => {
+    if (!deletingStaff) return;
+    try {
+      setActionLoading(true);
+      await api.hospitalAdmin.deleteStaff(deletingStaff.id);
+      setDeletingStaff(null);
+      fetchOverview();
+    } catch (err: any) {
+      alert(`Error deleting staff member: ${err.message}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ==========================================
+  // QUEUE HANDLERS
+  // ==========================================
   const handleCreateQueue = async (e: React.FormEvent) => {
     e.preventDefault();
-    const deptId = queueForm.department_id || overview?.departments[0]?.id;
-    if (!queueForm.name || !queueForm.prefix || !deptId) {
-      alert("Please select a department and fill in queue name and prefix.");
-      return;
-    }
+    if (!queueForm.department_id || !queueForm.name || !queueForm.prefix) return;
     try {
       setActionLoading(true);
       await api.hospitalAdmin.createQueue({
-        ...queueForm,
-        department_id: deptId,
+        department_id: queueForm.department_id,
         doctor_user_id: queueForm.doctor_user_id || undefined,
         room_id: queueForm.room_id || undefined,
+        name: queueForm.name,
+        prefix: queueForm.prefix,
+        default_consult_time_min: Number(queueForm.default_consult_time_min) || 10,
       });
       setQueueForm({
         department_id: overview?.departments[0]?.id || "",
@@ -195,58 +347,102 @@ export default function HospitalAdminDepartmentsPage() {
     }
   };
 
-  const handleLogout = () => {
-    api.auth.logout();
-    router.push("/login");
+  const handleUpdateQueue = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingQueue) return;
+    try {
+      setActionLoading(true);
+      await api.hospitalAdmin.updateQueue(editingQueue.id, {
+        department_id: editQueueForm.department_id,
+        doctor_user_id: editQueueForm.doctor_user_id || undefined,
+        room_id: editQueueForm.room_id || undefined,
+        name: editQueueForm.name,
+        prefix: editQueueForm.prefix,
+        default_consult_time_min: Number(editQueueForm.default_consult_time_min) || 10,
+        status: editQueueForm.status,
+      });
+      setEditingQueue(null);
+      fetchOverview();
+    } catch (err: any) {
+      alert(`Error updating queue: ${err.message}`);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  if (authLoading || !isAuthorized) {
+  const handleDeleteQueue = async () => {
+    if (!deletingQueue) return;
+    try {
+      setActionLoading(true);
+      await api.hospitalAdmin.deleteQueue(deletingQueue.id);
+      setDeletingQueue(null);
+      fetchOverview();
+    } catch (err: any) {
+      alert(`Error deleting queue: ${err.message}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  if (authLoading || (loading && !overview)) {
     return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white">
-        <Activity className="w-8 h-8 text-purple-400 animate-spin mb-3" />
-        <span className="text-sm font-bold text-slate-300">Verifying Hospital Administration Privileges...</span>
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+          <p className="text-slate-400 font-mono text-xs uppercase tracking-widest">
+            Loading Hospital Management Suite...
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased selection:bg-emerald-500 selection:text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
       {/* ============================================================ */}
-      {/* TOP NAVIGATION BAR                                           */}
+      {/* TOP CLINICAL COMMAND BAR                                     */}
       {/* ============================================================ */}
-      <header className="bg-white border-b border-slate-200/90 sticky top-0 z-40 px-6 py-3.5 flex items-center justify-between shadow-xs">
-        <div className="flex items-center space-x-4">
-          <Link href="/" className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black shadow-xs">
-              <Building2 className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="font-extrabold text-base tracking-tight text-slate-950">
+      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-xs">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-xs">
+            <Building2 className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h1 className="text-base font-extrabold text-slate-950 tracking-tight">
                 {overview?.hospital_name || "Hospital Admin"}
-              </span>
-              <span className="text-xs bg-emerald-50 text-emerald-800 font-bold px-2 py-0.5 rounded-md ml-2 border border-emerald-200">
-                Operations Console
+              </h1>
+              <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded-full border border-emerald-300">
+                TENANT SUITE
               </span>
             </div>
-          </Link>
+            <p className="text-xs text-slate-500 font-medium">
+              Departments, Clinical Rooms, Staff Onboarding & OPD Queues
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center space-x-3">
-          <div className="hidden sm:flex items-center space-x-2 text-xs font-mono text-slate-700 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
-            <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-            <span>{user?.email || "admin@hospital.com"}</span>
-          </div>
-
           <button
             onClick={fetchOverview}
-            title="Refresh Facility Topology"
+            disabled={loading}
             className="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl border border-slate-200 text-slate-700 transition"
+            title="Refresh Overview"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
-
+          <div className="h-6 w-[1px] bg-slate-200" />
+          <div className="flex items-center space-x-2 px-3 py-1.5 bg-slate-100 rounded-xl border border-slate-200">
+            <Shield className="w-4 h-4 text-emerald-700" />
+            <span className="text-xs font-bold text-slate-800 font-mono">
+              {user?.full_name || "Hospital Admin"}
+            </span>
+          </div>
           <button
-            onClick={handleLogout}
+            onClick={() => {
+              api.auth.logout();
+              router.push("/login");
+            }}
             title="Sign Out"
             className="p-2 bg-slate-100 hover:bg-rose-50 rounded-xl border border-slate-200 text-slate-600 hover:text-rose-700 transition"
           >
@@ -396,37 +592,83 @@ export default function HospitalAdminDepartmentsPage() {
               {overview?.departments.map((dept) => (
                 <div
                   key={dept.id}
-                  className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col justify-between"
+                  className="p-5 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col justify-between hover:border-slate-300 transition"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-extrabold text-slate-900 text-base">{dept.name}</span>
-                      <span className="text-xs font-mono font-bold bg-slate-200 text-slate-800 px-2 py-0.5 rounded-md">
-                        {dept.code}
-                      </span>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-extrabold text-slate-900 text-base">{dept.name}</span>
+                        <span className="text-xs font-mono font-bold bg-slate-200 text-slate-800 px-2 py-0.5 rounded-md">
+                          {dept.code}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <button
+                          onClick={() => {
+                            setEditingDept(dept);
+                            setEditDeptForm({ name: dept.name, code: dept.code });
+                          }}
+                          className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition"
+                          title="Edit Department"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeletingDept(dept)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-transparent hover:border-rose-200 transition"
+                          title="Delete Department"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                     <span className="text-xs text-slate-500 font-medium block mb-3">
-                      Specialty Department
+                      Specialty Department ({dept.queue_count} active queues)
                     </span>
 
                     {/* Associated Rooms */}
-                    <div className="space-y-1.5">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                        Assigned Consultation Rooms
-                      </span>
+                    <div className="space-y-2 pt-2 border-t border-slate-200/60">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                          Assigned Examination Rooms ({overview.rooms.filter((r) => r.department_id === dept.id).length})
+                        </span>
+                      </div>
                       {overview.rooms.filter((r) => r.department_id === dept.id).length === 0 ? (
-                        <div className="text-xs text-slate-400 italic">No rooms assigned yet</div>
+                        <div className="text-xs text-slate-400 italic">No examination rooms assigned yet</div>
                       ) : (
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-wrap gap-2">
                           {overview.rooms
                             .filter((r) => r.department_id === dept.id)
                             .map((r) => (
-                              <span
+                              <div
                                 key={r.id}
-                                className="text-xs font-mono bg-white border border-slate-200 text-slate-700 px-2.5 py-1 rounded-lg"
+                                className="group flex items-center space-x-1.5 text-xs font-mono bg-white border border-slate-200 text-slate-700 px-2.5 py-1 rounded-lg hover:border-slate-300 transition"
                               >
-                                Room {r.room_number} · {r.name}
-                              </span>
+                                <span>Room {r.room_number} · {r.name}</span>
+                                <div className="flex items-center space-x-0.5 opacity-80 group-hover:opacity-100">
+                                  <button
+                                    onClick={() => {
+                                      setEditingRoom(r);
+                                      setEditRoomForm({
+                                        department_id: r.department_id,
+                                        name: r.name,
+                                        room_number: r.room_number,
+                                      });
+                                    }}
+                                    className="p-0.5 text-slate-400 hover:text-blue-600"
+                                    title="Edit Room"
+                                  >
+                                    <Edit2 className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    onClick={() => setDeletingRoom(r)}
+                                    className="p-0.5 text-slate-400 hover:text-rose-600"
+                                    title="Delete Room"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              </div>
                             ))}
                         </div>
                       )}
@@ -466,24 +708,56 @@ export default function HospitalAdminDepartmentsPage() {
                         {s.phone_number || "—"}
                       </td>
                       <td className="py-3.5 px-4">
-                        <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                          Active
-                        </span>
+                        {s.is_active ? (
+                          <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                            Active
+                          </span>
+                        ) : (
+                          <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-300">
+                            Inactive
+                          </span>
+                        )}
                       </td>
                       <td className="py-3.5 px-4 text-right">
-                        <button
-                          onClick={async () => {
-                            try {
-                              await api.hospitalAdmin.resendStaffInvite(s.id);
-                              alert(`Credentials and station login email dispatched to ${s.email}!`);
-                            } catch (err: any) {
-                              alert(`Failed to send email: ${err.message}`);
-                            }
-                          }}
-                          className="px-2.5 py-1 text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-lg transition"
-                        >
-                          Email Credentials
-                        </button>
+                        <div className="flex items-center justify-end space-x-1.5">
+                          <button
+                            onClick={async () => {
+                              try {
+                                await api.hospitalAdmin.resendStaffInvite(s.id);
+                                alert(`Credentials and station login email dispatched to ${s.email}!`);
+                              } catch (err: any) {
+                                alert(`Failed to send email: ${err.message}`);
+                              }
+                            }}
+                            className="px-2.5 py-1 text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-lg transition"
+                          >
+                            Email Credentials
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingStaff(s);
+                              setEditStaffForm({
+                                full_name: s.full_name,
+                                email: s.email,
+                                phone_number: s.phone_number || "",
+                                role: s.role,
+                                is_active: s.is_active,
+                                password: "",
+                              });
+                            }}
+                            className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg border border-slate-200 transition"
+                            title="Edit Staff Member"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setDeletingStaff(s)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-slate-200 transition"
+                            title="Delete Staff Member"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -501,8 +775,11 @@ export default function HospitalAdminDepartmentsPage() {
                     <th className="py-3 px-4">Queue Name</th>
                     <th className="py-3 px-4">Prefix</th>
                     <th className="py-3 px-4">Department</th>
+                    <th className="py-3 px-4">Assigned Doctor</th>
+                    <th className="py-3 px-4">Room</th>
                     <th className="py-3 px-4">Pacing Target</th>
                     <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -515,13 +792,56 @@ export default function HospitalAdminDepartmentsPage() {
                       <td className="py-3.5 px-4 text-xs font-medium text-slate-600">
                         {overview.departments.find((d) => d.id === q.department_id)?.name || "General"}
                       </td>
+                      <td className="py-3.5 px-4 text-xs font-medium text-slate-800">
+                        {q.doctor_name || <span className="text-slate-400 italic">Unassigned</span>}
+                      </td>
+                      <td className="py-3.5 px-4 text-xs font-mono text-slate-700">
+                        {q.room_number ? `Room ${q.room_number}` : <span className="text-slate-400 italic">—</span>}
+                      </td>
                       <td className="py-3.5 px-4 text-xs font-mono font-bold text-slate-700">
                         {q.default_consult_time_min} mins
                       </td>
                       <td className="py-3.5 px-4">
-                        <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                        <span
+                          className={`text-xs font-bold px-2 py-0.5 rounded-md border ${
+                            q.status === "OPEN"
+                              ? "text-emerald-800 bg-emerald-50 border-emerald-200"
+                              : q.status === "PAUSED"
+                              ? "text-amber-800 bg-amber-50 border-amber-200"
+                              : "text-slate-600 bg-slate-100 border-slate-200"
+                          }`}
+                        >
                           {q.status}
                         </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end space-x-1.5">
+                          <button
+                            onClick={() => {
+                              setEditingQueue(q);
+                              setEditQueueForm({
+                                department_id: q.department_id,
+                                doctor_user_id: q.doctor_user_id || "",
+                                room_id: q.room_id || "",
+                                name: q.name,
+                                prefix: q.prefix,
+                                default_consult_time_min: q.default_consult_time_min,
+                                status: q.status,
+                              });
+                            }}
+                            className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg border border-slate-200 transition"
+                            title="Edit Queue"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setDeletingQueue(q)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-slate-200 transition"
+                            title="Delete Queue"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -580,6 +900,90 @@ export default function HospitalAdminDepartmentsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: EDIT DEPARTMENT                                       */}
+      {/* ============================================================ */}
+      {editingDept && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-6 shadow-xl animate-fade-in text-slate-900">
+            <h3 className="text-lg font-extrabold text-slate-900 mb-1">Edit Department</h3>
+            <p className="text-xs text-slate-500 mb-4">Update department name or clinical code</p>
+            <form onSubmit={handleUpdateDepartment} className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Department Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editDeptForm.name}
+                  onChange={(e) => setEditDeptForm((prev) => ({ ...prev, name: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Department Code *</label>
+                <input
+                  type="text"
+                  required
+                  value={editDeptForm.code}
+                  onChange={(e) => setEditDeptForm((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold uppercase text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingDept(null)}
+                  className="px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs"
+                >
+                  {actionLoading ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: DELETE DEPARTMENT CONFIRMATION                         */}
+      {/* ============================================================ */}
+      {deletingDept && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-6 shadow-xl animate-fade-in text-slate-900">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-4">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-extrabold text-slate-900 mb-1">Delete Department?</h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Are you sure you want to delete <strong className="text-slate-800">{deletingDept.name} ({deletingDept.code})</strong>? This will remove all associated rooms and queues.
+            </p>
+            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setDeletingDept(null)}
+                className="px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteDepartment}
+                disabled={actionLoading}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-xs"
+              >
+                {actionLoading ? "Deleting..." : "Delete Department"}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -650,236 +1054,21 @@ export default function HospitalAdminDepartmentsPage() {
       )}
 
       {/* ============================================================ */}
-      {/* MODAL: ADD STAFF MEMBER                                      */}
+      {/* MODAL: EDIT ROOM                                             */}
       {/* ============================================================ */}
-      {isStaffModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-xl animate-fade-in text-slate-900">
-            {staffSuccess ? (
-              /* Success View */
-              <div className="space-y-5 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto border border-emerald-200">
-                  <CheckCircle2 className="w-7 h-7" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-black text-slate-900">Staff Account Created!</h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    "{staffSuccess.full_name}" has been registered and assigned workstation access.
-                  </p>
-                </div>
-
-                <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold border border-slate-200 bg-slate-50">
-                  {staffSuccess.role === "DOCTOR" ? (
-                    <>
-                      <Stethoscope className="w-3.5 h-3.5 text-emerald-700" />
-                      <span className="text-emerald-800">Doctor / Physician Station</span>
-                    </>
-                  ) : (
-                    <>
-                      <Users className="w-3.5 h-3.5 text-blue-700" />
-                      <span className="text-blue-800">Front Desk Receptionist</span>
-                    </>
-                  )}
-                </div>
-
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-900 font-semibold flex items-center justify-center space-x-2">
-                  <Check className="w-4 h-4 text-emerald-600" />
-                  <span>Invitation email containing station credentials sent to <strong>{staffSuccess.email}</strong></span>
-                </div>
-
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-left font-mono text-xs space-y-2">
-                  <div className="flex justify-between border-b border-slate-200 pb-2">
-                    <span className="text-slate-500">Designated Role:</span>
-                    <span className="text-slate-900 font-bold">{staffSuccess.role === "DOCTOR" ? "Physician / Doctor" : "Receptionist"}</span>
-                  </div>
-                  <div className="flex justify-between border-b border-slate-200 pb-2">
-                    <span className="text-slate-500">Login Email:</span>
-                    <span className="text-slate-900 font-bold">{staffSuccess.email}</span>
-                  </div>
-                  <div className="flex justify-between border-b border-slate-200 pb-2">
-                    <span className="text-slate-500">Initial Password:</span>
-                    <span className="text-amber-800 font-bold">{staffSuccess.password}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Login Portal:</span>
-                    <span className="text-emerald-700 font-bold truncate max-w-[200px]">{window.location.origin}/login</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-2">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        await api.hospitalAdmin.resendStaffInvite(staffSuccess.id);
-                        alert(`Credentials email re-sent to ${staffSuccess.email}!`);
-                      } catch (err: any) {
-                        alert(`Failed to send email: ${err.message}`);
-                      }
-                    }}
-                    className="w-full py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 transition border border-blue-200"
-                  >
-                    <Mail className="w-3.5 h-3.5" />
-                    <span>Resend Email</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const text = `Hospital Staff Account: ${staffSuccess.full_name}\nRole: ${staffSuccess.role}\nEmail: ${staffSuccess.email}\nPassword: ${staffSuccess.password}\nLogin Portal: ${window.location.origin}/login`;
-                      navigator.clipboard.writeText(text);
-                      setCopiedStaffKey(true);
-                      setTimeout(() => setCopiedStaffKey(false), 2000);
-                    }}
-                    className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 transition border border-slate-200"
-                  >
-                    {copiedStaffKey ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedStaffKey ? "Copied!" : "Copy Details"}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsStaffModalOpen(false);
-                      setStaffSuccess(null);
-                      setStaffForm({
-                        full_name: "",
-                        email: "",
-                        password: "",
-                        phone_number: "",
-                        role: "DOCTOR",
-                      });
-                    }}
-                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs transition shadow-xs"
-                  >
-                    Done
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* Create Form View */
-              <div>
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-                  <div>
-                    <h3 className="text-lg font-black text-slate-900">Add Staff Account</h3>
-                    <p className="text-xs text-slate-500">Create physician or receptionist login</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsStaffModalOpen(false)}
-                    className="p-1 text-slate-400 hover:text-slate-600 transition"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <form onSubmit={handleCreateStaff} className="space-y-3">
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">Full Name *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Dr. Ananya Roy"
-                      value={staffForm.full_name}
-                      onChange={(e) => setStaffForm((prev) => ({ ...prev, full_name: e.target.value }))}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">Email Address *</label>
-                    <input
-                      type="email"
-                      required
-                      placeholder="doctor@hospital.com"
-                      value={staffForm.email}
-                      onChange={(e) => setStaffForm((prev) => ({ ...prev, email: e.target.value }))}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">Initial Password *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="DoctorPass123!"
-                      value={staffForm.password}
-                      onChange={(e) => setStaffForm((prev) => ({ ...prev, password: e.target.value }))}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">Role *</label>
-                    <select
-                      value={staffForm.role}
-                      onChange={(e) => setStaffForm((prev) => ({ ...prev, role: e.target.value as UserRole }))}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
-                    >
-                      <option value="DOCTOR">Doctor / Physician Station</option>
-                      <option value="RECEPTIONIST">Front Desk Receptionist</option>
-                    </select>
-                  </div>
-                  <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
-                    <button
-                      type="button"
-                      onClick={() => setIsStaffModalOpen(false)}
-                      className="px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={actionLoading}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs"
-                    >
-                      {actionLoading ? "Provisioning & Emailing..." : "Create & Send Credentials"}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ============================================================ */}
-      {/* MODAL: DEPLOY NEW QUEUE                                       */}
-      {/* ============================================================ */}
-      {isQueueModalOpen && (
+      {editingRoom && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-6 shadow-xl animate-fade-in text-slate-900">
-            <h3 className="text-lg font-extrabold text-slate-900 mb-1">Deploy Live Queue</h3>
-            <p className="text-xs text-slate-500 mb-4">Set up a live consultation queue</p>
-            <form onSubmit={handleCreateQueue} className="space-y-3">
+            <h3 className="text-lg font-extrabold text-slate-900 mb-1">Edit Examination Room</h3>
+            <p className="text-xs text-slate-500 mb-4">Update room details or assigned department</p>
+            <form onSubmit={handleUpdateRoom} className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Queue Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Cardiology Morning OPD"
-                  value={queueForm.name}
-                  onChange={(e) => setQueueForm((prev) => ({ ...prev, name: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Token Prefix *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="CRD"
-                  value={queueForm.prefix}
-                  onChange={(e) => setQueueForm((prev) => ({ ...prev, prefix: e.target.value.toUpperCase() }))}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold uppercase text-slate-900 focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Department</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Department *</label>
                 <select
-                  value={queueForm.department_id}
-                  onChange={(e) => setQueueForm((prev) => ({ ...prev, department_id: e.target.value }))}
+                  value={editRoomForm.department_id}
+                  onChange={(e) => setEditRoomForm((prev) => ({ ...prev, department_id: e.target.value }))}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                 >
-                  <option value="">-- Select Department --</option>
                   {overview?.departments.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.name} ({d.code})
@@ -888,21 +1077,395 @@ export default function HospitalAdminDepartmentsPage() {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Assigned Doctor</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Room / Cabin Number *</label>
+                <input
+                  type="text"
+                  required
+                  value={editRoomForm.room_number}
+                  onChange={(e) => setEditRoomForm((prev) => ({ ...prev, room_number: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Room Display Name</label>
+                <input
+                  type="text"
+                  value={editRoomForm.name}
+                  onChange={(e) => setEditRoomForm((prev) => ({ ...prev, name: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingRoom(null)}
+                  className="px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs"
+                >
+                  {actionLoading ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: DELETE ROOM CONFIRMATION                              */}
+      {/* ============================================================ */}
+      {deletingRoom && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-6 shadow-xl animate-fade-in text-slate-900">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-4">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-extrabold text-slate-900 mb-1">Delete Room?</h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Are you sure you want to delete <strong className="text-slate-800">Room {deletingRoom.room_number} ({deletingRoom.name})</strong>?
+            </p>
+            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setDeletingRoom(null)}
+                className="px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteRoom}
+                disabled={actionLoading}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-xs"
+              >
+                {actionLoading ? "Deleting..." : "Delete Room"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: ADD STAFF                                             */}
+      {/* ============================================================ */}
+      {isStaffModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-xl animate-fade-in text-slate-900">
+            <h3 className="text-lg font-extrabold text-slate-900 mb-1">Onboard Staff Member</h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Create credentials for Doctors, Receptionists, or Clinic Assistants
+            </p>
+            <form onSubmit={handleInviteStaff} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Dr. Emily Watson"
+                    value={staffForm.full_name}
+                    onChange={(e) => setStaffForm((prev) => ({ ...prev, full_name: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Role *</label>
+                  <select
+                    value={staffForm.role}
+                    onChange={(e) => setStaffForm((prev) => ({ ...prev, role: e.target.value as UserRole }))}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="DOCTOR">Doctor</option>
+                    <option value="RECEPTIONIST">Receptionist</option>
+                    <option value="DOCTOR_ASSISTANT">Doctor Assistant</option>
+                    <option value="HOSPITAL_ADMIN">Hospital Administrator</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Email Address *</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="doctor@hospital.com"
+                  value={staffForm.email}
+                  onChange={(e) => setStaffForm((prev) => ({ ...prev, email: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Phone (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="+919876543210"
+                    value={staffForm.phone_number}
+                    onChange={(e) => setStaffForm((prev) => ({ ...prev, phone_number: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Initial Password *</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Min. 6 chars"
+                    value={staffForm.password}
+                    onChange={(e) => setStaffForm((prev) => ({ ...prev, password: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsStaffModalOpen(false)}
+                  className="px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs"
+                >
+                  {actionLoading ? "Provisioning..." : "Onboard Staff"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: EDIT STAFF                                            */}
+      {/* ============================================================ */}
+      {editingStaff && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-xl animate-fade-in text-slate-900">
+            <h3 className="text-lg font-extrabold text-slate-900 mb-1">Edit Staff Member</h3>
+            <p className="text-xs text-slate-500 mb-4">Update profile, role, status, or reset password</p>
+            <form onSubmit={handleUpdateStaff} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editStaffForm.full_name}
+                    onChange={(e) => setEditStaffForm((prev) => ({ ...prev, full_name: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Role *</label>
+                  <select
+                    value={editStaffForm.role}
+                    onChange={(e) => setEditStaffForm((prev) => ({ ...prev, role: e.target.value as UserRole }))}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="DOCTOR">Doctor</option>
+                    <option value="RECEPTIONIST">Receptionist</option>
+                    <option value="DOCTOR_ASSISTANT">Doctor Assistant</option>
+                    <option value="HOSPITAL_ADMIN">Hospital Administrator</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Email Address *</label>
+                <input
+                  type="email"
+                  required
+                  value={editStaffForm.email}
+                  onChange={(e) => setEditStaffForm((prev) => ({ ...prev, email: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Phone Number</label>
+                  <input
+                    type="text"
+                    value={editStaffForm.phone_number}
+                    onChange={(e) => setEditStaffForm((prev) => ({ ...prev, phone_number: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Account Status</label>
+                  <select
+                    value={editStaffForm.is_active ? "true" : "false"}
+                    onChange={(e) => setEditStaffForm((prev) => ({ ...prev, is_active: e.target.value === "true" }))}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="true">Active</option>
+                    <option value="false">Suspended / Inactive</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Reset Password (Leave blank to keep unchanged)</label>
+                <input
+                  type="password"
+                  placeholder="New password (min 6 chars)"
+                  value={editStaffForm.password}
+                  onChange={(e) => setEditStaffForm((prev) => ({ ...prev, password: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingStaff(null)}
+                  className="px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs"
+                >
+                  {actionLoading ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: DELETE STAFF CONFIRMATION                             */}
+      {/* ============================================================ */}
+      {deletingStaff && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-6 shadow-xl animate-fade-in text-slate-900">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-4">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-extrabold text-slate-900 mb-1">Delete Staff Member?</h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Are you sure you want to delete <strong className="text-slate-800">{deletingStaff.full_name} ({deletingStaff.email})</strong>?
+            </p>
+            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setDeletingStaff(null)}
+                className="px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteStaff}
+                disabled={actionLoading}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-xs"
+              >
+                {actionLoading ? "Deleting..." : "Delete Staff"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: DEPLOY QUEUE                                          */}
+      {/* ============================================================ */}
+      {isQueueModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-xl animate-fade-in text-slate-900">
+            <h3 className="text-lg font-extrabold text-slate-900 mb-1">Deploy OPD Queue</h3>
+            <p className="text-xs text-slate-500 mb-4">Link department, room, and assigned physician</p>
+            <form onSubmit={handleCreateQueue} className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Queue Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. General Cardiology OPD"
+                  value={queueForm.name}
+                  onChange={(e) => setQueueForm((prev) => ({ ...prev, name: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Prefix *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="CRD"
+                    value={queueForm.prefix}
+                    onChange={(e) => setQueueForm((prev) => ({ ...prev, prefix: e.target.value.toUpperCase() }))}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold uppercase text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Pacing Target (Min)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="120"
+                    value={queueForm.default_consult_time_min}
+                    onChange={(e) => setQueueForm((prev) => ({ ...prev, default_consult_time_min: parseInt(e.target.value) || 10 }))}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Department *</label>
                 <select
-                  value={queueForm.doctor_user_id}
-                  onChange={(e) => setQueueForm((prev) => ({ ...prev, doctor_user_id: e.target.value }))}
+                  value={queueForm.department_id}
+                  onChange={(e) => setQueueForm((prev) => ({ ...prev, department_id: e.target.value }))}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                 >
-                  <option value="">-- Select Doctor (Optional) --</option>
-                  {overview?.staff
-                    .filter((s) => s.role === "DOCTOR")
-                    .map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.full_name} ({d.email})
-                      </option>
-                    ))}
+                  {overview?.departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name} ({d.code})
+                    </option>
+                  ))}
                 </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Assigned Physician</label>
+                  <select
+                    value={queueForm.doctor_user_id}
+                    onChange={(e) => setQueueForm((prev) => ({ ...prev, doctor_user_id: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="">Unassigned</option>
+                    {overview?.staff
+                      .filter((s) => s.role === "DOCTOR")
+                      .map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.full_name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Assigned Room</label>
+                  <select
+                    value={queueForm.room_id}
+                    onChange={(e) => setQueueForm((prev) => ({ ...prev, room_id: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="">Unassigned</option>
+                    {overview?.rooms
+                      .filter((r) => !queueForm.department_id || r.department_id === queueForm.department_id)
+                      .map((r) => (
+                        <option key={r.id} value={r.id}>
+                          Room {r.room_number} ({r.name})
+                        </option>
+                      ))}
+                  </select>
+                </div>
               </div>
               <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
                 <button
@@ -917,10 +1480,233 @@ export default function HospitalAdminDepartmentsPage() {
                   disabled={actionLoading}
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs"
                 >
-                  {actionLoading ? "Deploying..." : "Deploy Live Queue"}
+                  {actionLoading ? "Deploying..." : "Deploy Queue"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: EDIT QUEUE                                            */}
+      {/* ============================================================ */}
+      {editingQueue && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-xl animate-fade-in text-slate-900">
+            <h3 className="text-lg font-extrabold text-slate-900 mb-1">Edit OPD Queue</h3>
+            <p className="text-xs text-slate-500 mb-4">Update queue parameters, assigned doctor, or room</p>
+            <form onSubmit={handleUpdateQueue} className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Queue Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editQueueForm.name}
+                  onChange={(e) => setEditQueueForm((prev) => ({ ...prev, name: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Prefix *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editQueueForm.prefix}
+                    onChange={(e) => setEditQueueForm((prev) => ({ ...prev, prefix: e.target.value.toUpperCase() }))}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold uppercase text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Pacing Target (Min)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="120"
+                    value={editQueueForm.default_consult_time_min}
+                    onChange={(e) => setEditQueueForm((prev) => ({ ...prev, default_consult_time_min: parseInt(e.target.value) || 10 }))}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Department *</label>
+                  <select
+                    value={editQueueForm.department_id}
+                    onChange={(e) => setEditQueueForm((prev) => ({ ...prev, department_id: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  >
+                    {overview?.departments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name} ({d.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Queue Status</label>
+                  <select
+                    value={editQueueForm.status}
+                    onChange={(e) => setEditQueueForm((prev) => ({ ...prev, status: e.target.value as QueueStatus }))}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="OPEN">OPEN</option>
+                    <option value="PAUSED">PAUSED</option>
+                    <option value="CLOSED">CLOSED</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Assigned Physician</label>
+                  <select
+                    value={editQueueForm.doctor_user_id}
+                    onChange={(e) => setEditQueueForm((prev) => ({ ...prev, doctor_user_id: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="">Unassigned</option>
+                    {overview?.staff
+                      .filter((s) => s.role === "DOCTOR")
+                      .map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.full_name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Assigned Room</label>
+                  <select
+                    value={editQueueForm.room_id}
+                    onChange={(e) => setEditQueueForm((prev) => ({ ...prev, room_id: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="">Unassigned</option>
+                    {overview?.rooms
+                      .filter((r) => !editQueueForm.department_id || r.department_id === editQueueForm.department_id)
+                      .map((r) => (
+                        <option key={r.id} value={r.id}>
+                          Room {r.room_number} ({r.name})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingQueue(null)}
+                  className="px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs"
+                >
+                  {actionLoading ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: DELETE QUEUE CONFIRMATION                             */}
+      {/* ============================================================ */}
+      {deletingQueue && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-6 shadow-xl animate-fade-in text-slate-900">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-4">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-extrabold text-slate-900 mb-1">Delete Queue?</h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Are you sure you want to delete <strong className="text-slate-800">{deletingQueue.name} ({deletingQueue.prefix})</strong>? This will remove all associated tokens.
+            </p>
+            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setDeletingQueue(null)}
+                className="px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteQueue}
+                disabled={actionLoading}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-xs"
+              >
+                {actionLoading ? "Deleting..." : "Delete Queue"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: STAFF PROVISIONED SUCCESS POPUP                       */}
+      {/* ============================================================ */}
+      {staffSuccess && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-xl animate-fade-in text-slate-900">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900">Staff Account Created</h3>
+                <p className="text-xs text-slate-500">Invitation credentials generated</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2 mb-4 text-xs font-mono">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Name:</span>
+                <span className="font-bold text-slate-900">{staffSuccess.full_name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Role:</span>
+                <span className="font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                  {staffSuccess.role}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Email:</span>
+                <span className="font-bold text-slate-900">{staffSuccess.email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Password:</span>
+                <span className="font-bold text-slate-900">{staffSuccess.password}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(
+                    `HQMS Staff Login:\nRole: ${staffSuccess.role}\nEmail: ${staffSuccess.email}\nPassword: ${staffSuccess.password}\nLogin URL: ${window.location.origin}/login`
+                  );
+                  setCopiedStaffKey(true);
+                  setTimeout(() => setCopiedStaffKey(false), 2000);
+                }}
+                className="flex-1 py-2 px-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition"
+              >
+                {copiedStaffKey ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedStaffKey ? "Copied" : "Copy Credentials"}</span>
+              </button>
+              <button
+                onClick={() => setStaffSuccess(null)}
+                className="py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}

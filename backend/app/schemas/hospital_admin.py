@@ -12,10 +12,21 @@ class DepartmentCreateIn(BaseModel):
     code: str = Field(..., min_length=2, max_length=50)
 
 
+class DepartmentUpdateIn(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=255)
+    code: Optional[str] = Field(None, min_length=2, max_length=50)
+
+
 class RoomCreateIn(BaseModel):
     department_id: uuid.UUID
     name: str = Field(..., min_length=2, max_length=255)
     room_number: str = Field(..., min_length=1, max_length=50)
+
+
+class RoomUpdateIn(BaseModel):
+    department_id: Optional[uuid.UUID] = None
+    name: Optional[str] = Field(None, min_length=2, max_length=255)
+    room_number: Optional[str] = Field(None, min_length=1, max_length=50)
 
 
 class StaffInviteIn(BaseModel):
@@ -25,6 +36,15 @@ class StaffInviteIn(BaseModel):
     password: str = Field(..., min_length=6, max_length=100)
     phone_number: Optional[str] = Field(None, max_length=50)
     role: UserRole = UserRole.DOCTOR
+
+
+class StaffUpdateIn(BaseModel):
+    full_name: Optional[str] = Field(None, min_length=2, max_length=255)
+    email: Optional[EmailStr] = None
+    phone_number: Optional[str] = Field(None, max_length=50)
+    role: Optional[UserRole] = None
+    is_active: Optional[bool] = None
+    password: Optional[str] = Field(None, min_length=6, max_length=100)
 
 
 class QueueCreateIn(BaseModel):
@@ -37,8 +57,17 @@ class QueueCreateIn(BaseModel):
     rejoin_policy: Optional[Dict[str, Any]] = Field(default_factory=default_rejoin_policy)
 
 
-class DepartmentItemOut(BaseModel):
+class QueueUpdateIn(BaseModel):
+    department_id: Optional[uuid.UUID] = None
+    doctor_user_id: Optional[uuid.UUID] = None
+    room_id: Optional[uuid.UUID] = None
+    name: Optional[str] = Field(None, min_length=2, max_length=255)
+    prefix: Optional[str] = Field(None, min_length=1, max_length=10)
+    default_consult_time_min: Optional[int] = Field(None, ge=1, le=120)
+    status: Optional[QueueStatus] = None
 
+
+class DepartmentItemOut(BaseModel):
     id: uuid.UUID
     branch_id: uuid.UUID
     name: str

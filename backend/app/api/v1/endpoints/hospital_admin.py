@@ -2,19 +2,35 @@ import uuid
 from typing import Any, List
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, func
+from sqlalchemy import select, and_, func, update, delete
 
 from app.core.database import get_db
 from app.core.security import get_password_hash
-from app.models import Hospital, Branch, Department, Room, StaffUser, Queue, UserRole, QueueStatus
+from app.models import (
+    Hospital,
+    Branch,
+    Department,
+    Room,
+    StaffUser,
+    Queue,
+    QueueToken,
+    QueueEvent,
+    QueuePause,
+    UserRole,
+    QueueStatus,
+)
 from app.schemas.hospital_admin import (
     DepartmentCreateIn,
+    DepartmentUpdateIn,
     DepartmentItemOut,
     RoomCreateIn,
+    RoomUpdateIn,
     RoomItemOut,
     StaffInviteIn,
+    StaffUpdateIn,
     StaffItemOut,
     QueueCreateIn,
+    QueueUpdateIn,
     QueueItemOut,
     HospitalAdminOverviewOut,
 )
@@ -386,3 +402,372 @@ async def create_queue(
         default_consult_time_min=queue.default_consult_time_min,
         current_sequence=queue.current_sequence,
     )
+
+
+# =========================================================================
+# Department Update & Delete
+# =========================================================================
+
+@router.patch("/departments/{dept_id}", response_model=DepartmentItemOut, summary="Update Department")
+async def update_department(
+    dept_id: uuid.UUID,
+    payload: DepartmentUpdateIn,
+    hospital_id: uuid.UUID | None = Query(None),
+    current_user: StaffUser = Depends(require_roles(UserRole.HOSPITAL_ADMIN, UserRole.SUPER_ADMIN)),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    target_hospital_id = _get_target_hospital_id(current_user, hospital_id)
+
+    dept = await db.scalar(
+        select(Department)
+        .join(Branch, Department.branch_id == Branch.id)
+        .where(and_(Department.id == dept_id, Branch.hospital_id == target_hospital_id))
+    )
+    if not dept:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Department not found in your hospital")
+
+    if payload.name is not None:
+        dept.name = payload.name.strip()
+    if payload.code is not None:
+        new_code = payload.code.upper().strip()
+        # Check duplicate code within branch
+        existing = await db.scalar(
+            select(Department).where(
+                and_(
+                    Department.branch_id == dept.branch_id,
+                    Department.code == new_code,
+                    Department.id != dept.id,
+                )
+            )
+        )
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Department code '{new_code}' already in use",
+            )
+        dept.code = new_code
+
+    await db.commit()
+    await db.refresh(dept)
+
+    # Get room and queue counts
+    room_count = await db.scalar(select(func.count(Room.id)).where(Room.department_id == dept.id)) or 0
+    queue_count = await db.scalar(select(func.count(Queue.id)).where(Queue.department_id == dept.id)) or 0
+
+    return DepartmentItemOut(
+        id=dept.id,
+        branch_id=dept.branch_id,
+        name=dept.name,
+        code=dept.code,
+        room_count=room_count,
+        queue_count=queue_count,
+    )
+
+
+@router.delete("/departments/{dept_id}", summary="Delete Department")
+async def delete_department(
+    dept_id: uuid.UUID,
+    hospital_id: uuid.UUID | None = Query(None),
+    current_user: StaffUser = Depends(require_roles(UserRole.HOSPITAL_ADMIN, UserRole.SUPER_ADMIN)),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    target_hospital_id = _get_target_hospital_id(current_user, hospital_id)
+
+    dept = await db.scalar(
+        select(Department)
+        .join(Branch, Department.branch_id == Branch.id)
+        .where(and_(Department.id == dept_id, Branch.hospital_id == target_hospital_id))
+    )
+    if not dept:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Department not found in your hospital")
+
+    # Fetch and delete associated queues (and their tokens/events/pauses)
+    queues_res = await db.scalars(select(Queue).where(Queue.department_id == dept.id))
+    queues = list(queues_res.all())
+    for q in queues:
+        token_ids = list(await db.scalars(select(QueueToken.id).where(QueueToken.queue_id == q.id)))
+        if token_ids:
+            await db.execute(delete(QueueEvent).where(QueueEvent.token_id.in_(token_ids)))
+        await db.execute(delete(QueueEvent).where(QueueEvent.queue_id == q.id))
+        await db.execute(delete(QueuePause).where(QueuePause.queue_id == q.id))
+        await db.execute(delete(QueueToken).where(QueueToken.queue_id == q.id))
+        await db.delete(q)
+
+    # Delete rooms
+    await db.execute(delete(Room).where(Room.department_id == dept.id))
+    # Delete department
+    await db.delete(dept)
+    await db.commit()
+
+    return {"status": "success", "message": f"Department '{dept.name}' and related resources deleted successfully"}
+
+
+# =========================================================================
+# Room Update & Delete
+# =========================================================================
+
+@router.patch("/rooms/{room_id}", response_model=RoomItemOut, summary="Update Consultation Room")
+async def update_room(
+    room_id: uuid.UUID,
+    payload: RoomUpdateIn,
+    hospital_id: uuid.UUID | None = Query(None),
+    current_user: StaffUser = Depends(require_roles(UserRole.HOSPITAL_ADMIN, UserRole.SUPER_ADMIN)),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    target_hospital_id = _get_target_hospital_id(current_user, hospital_id)
+
+    room = await db.scalar(
+        select(Room)
+        .join(Department, Room.department_id == Department.id)
+        .join(Branch, Department.branch_id == Branch.id)
+        .where(and_(Room.id == room_id, Branch.hospital_id == target_hospital_id))
+    )
+    if not room:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found in your hospital")
+
+    if payload.department_id is not None:
+        dept = await db.scalar(
+            select(Department)
+            .join(Branch, Department.branch_id == Branch.id)
+            .where(and_(Department.id == payload.department_id, Branch.hospital_id == target_hospital_id))
+        )
+        if not dept:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target department not found")
+        room.department_id = payload.department_id
+
+    if payload.name is not None:
+        room.name = payload.name.strip()
+    if payload.room_number is not None:
+        room.room_number = payload.room_number.strip()
+
+    await db.commit()
+    await db.refresh(room)
+    return RoomItemOut.model_validate(room)
+
+
+@router.delete("/rooms/{room_id}", summary="Delete Consultation Room")
+async def delete_room(
+    room_id: uuid.UUID,
+    hospital_id: uuid.UUID | None = Query(None),
+    current_user: StaffUser = Depends(require_roles(UserRole.HOSPITAL_ADMIN, UserRole.SUPER_ADMIN)),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    target_hospital_id = _get_target_hospital_id(current_user, hospital_id)
+
+    room = await db.scalar(
+        select(Room)
+        .join(Department, Room.department_id == Department.id)
+        .join(Branch, Department.branch_id == Branch.id)
+        .where(and_(Room.id == room_id, Branch.hospital_id == target_hospital_id))
+    )
+    if not room:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found in your hospital")
+
+    # Unassign room from any active queues
+    await db.execute(
+        update(Queue).where(Queue.room_id == room.id).values(room_id=None)
+    )
+    await db.delete(room)
+    await db.commit()
+
+    return {"status": "success", "message": f"Room '{room.name}' deleted successfully"}
+
+
+# =========================================================================
+# Staff Update & Delete
+# =========================================================================
+
+@router.patch("/staff/{user_id}", response_model=StaffItemOut, summary="Update Staff User")
+async def update_staff_user(
+    user_id: uuid.UUID,
+    payload: StaffUpdateIn,
+    hospital_id: uuid.UUID | None = Query(None),
+    current_user: StaffUser = Depends(require_roles(UserRole.HOSPITAL_ADMIN, UserRole.SUPER_ADMIN)),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    target_hospital_id = _get_target_hospital_id(current_user, hospital_id)
+
+    staff = await db.scalar(
+        select(StaffUser).where(
+            and_(StaffUser.id == user_id, StaffUser.hospital_id == target_hospital_id)
+        )
+    )
+    if not staff:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Staff user not found in your hospital")
+
+    if payload.full_name is not None:
+        staff.full_name = payload.full_name.strip()
+    if payload.email is not None:
+        new_email = payload.email.lower().strip()
+        existing = await db.scalar(
+            select(StaffUser).where(and_(StaffUser.email == new_email, StaffUser.id != staff.id))
+        )
+        if existing:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already in use by another user")
+        staff.email = new_email
+    if payload.phone_number is not None:
+        staff.phone_number = payload.phone_number.strip() if payload.phone_number else None
+    if payload.role is not None:
+        staff.role = payload.role
+    if payload.is_active is not None:
+        staff.is_active = payload.is_active
+    if payload.password is not None and len(payload.password) >= 6:
+        staff.hashed_password = get_password_hash(payload.password)
+
+    await db.commit()
+    await db.refresh(staff)
+    return StaffItemOut.model_validate(staff)
+
+
+@router.delete("/staff/{user_id}", summary="Delete Staff User")
+async def delete_staff_user(
+    user_id: uuid.UUID,
+    hospital_id: uuid.UUID | None = Query(None),
+    current_user: StaffUser = Depends(require_roles(UserRole.HOSPITAL_ADMIN, UserRole.SUPER_ADMIN)),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    target_hospital_id = _get_target_hospital_id(current_user, hospital_id)
+
+    if user_id == current_user.id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot delete your own user account")
+
+    staff = await db.scalar(
+        select(StaffUser).where(
+            and_(StaffUser.id == user_id, StaffUser.hospital_id == target_hospital_id)
+        )
+    )
+    if not staff:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Staff user not found in your hospital")
+
+    # Unassign doctor from any queues
+    await db.execute(
+        update(Queue).where(Queue.doctor_user_id == staff.id).values(doctor_user_id=None)
+    )
+    await db.delete(staff)
+    await db.commit()
+
+    return {"status": "success", "message": f"Staff user '{staff.full_name}' deleted successfully"}
+
+
+# =========================================================================
+# Queue Update & Delete
+# =========================================================================
+
+@router.patch("/queues/{queue_id}", response_model=QueueItemOut, summary="Update OPD Queue")
+async def update_queue(
+    queue_id: uuid.UUID,
+    payload: QueueUpdateIn,
+    hospital_id: uuid.UUID | None = Query(None),
+    current_user: StaffUser = Depends(require_roles(UserRole.HOSPITAL_ADMIN, UserRole.SUPER_ADMIN)),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    target_hospital_id = _get_target_hospital_id(current_user, hospital_id)
+
+    queue = await db.scalar(
+        select(Queue)
+        .join(Department, Queue.department_id == Department.id)
+        .join(Branch, Department.branch_id == Branch.id)
+        .where(and_(Queue.id == queue_id, Branch.hospital_id == target_hospital_id))
+    )
+    if not queue:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Queue not found in your hospital")
+
+    if payload.department_id is not None:
+        dept = await db.scalar(
+            select(Department)
+            .join(Branch, Department.branch_id == Branch.id)
+            .where(and_(Department.id == payload.department_id, Branch.hospital_id == target_hospital_id))
+        )
+        if not dept:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target department not found")
+        queue.department_id = payload.department_id
+
+    if payload.doctor_user_id is not None:
+        if payload.doctor_user_id:
+            doctor = await db.scalar(
+                select(StaffUser).where(
+                    and_(
+                        StaffUser.id == payload.doctor_user_id,
+                        StaffUser.hospital_id == target_hospital_id,
+                    )
+                )
+            )
+            if not doctor:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found")
+            queue.doctor_user_id = payload.doctor_user_id
+        else:
+            queue.doctor_user_id = None
+
+    if payload.room_id is not None:
+        if payload.room_id:
+            room = await db.scalar(
+                select(Room).where(and_(Room.id == payload.room_id, Room.department_id == queue.department_id))
+            )
+            if not room:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found in queue department")
+            queue.room_id = payload.room_id
+        else:
+            queue.room_id = None
+
+    if payload.name is not None:
+        queue.name = payload.name.strip()
+    if payload.prefix is not None:
+        queue.prefix = payload.prefix.upper().strip()
+    if payload.default_consult_time_min is not None:
+        queue.default_consult_time_min = payload.default_consult_time_min
+    if payload.status is not None:
+        queue.status = payload.status
+
+    await db.commit()
+    await db.refresh(queue)
+
+    dept = await db.scalar(select(Department).where(Department.id == queue.department_id))
+    doctor = await db.scalar(select(StaffUser).where(StaffUser.id == queue.doctor_user_id)) if queue.doctor_user_id else None
+    room = await db.scalar(select(Room).where(Room.id == queue.room_id)) if queue.room_id else None
+
+    return QueueItemOut(
+        id=queue.id,
+        department_id=queue.department_id,
+        department_name=dept.name if dept else None,
+        doctor_user_id=queue.doctor_user_id,
+        doctor_name=doctor.full_name if doctor else None,
+        room_id=queue.room_id,
+        room_number=room.room_number if room else None,
+        name=queue.name,
+        prefix=queue.prefix,
+        status=queue.status,
+        default_consult_time_min=queue.default_consult_time_min,
+        current_sequence=queue.current_sequence,
+    )
+
+
+@router.delete("/queues/{queue_id}", summary="Delete OPD Queue")
+async def delete_queue(
+    queue_id: uuid.UUID,
+    hospital_id: uuid.UUID | None = Query(None),
+    current_user: StaffUser = Depends(require_roles(UserRole.HOSPITAL_ADMIN, UserRole.SUPER_ADMIN)),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    target_hospital_id = _get_target_hospital_id(current_user, hospital_id)
+
+    queue = await db.scalar(
+        select(Queue)
+        .join(Department, Queue.department_id == Department.id)
+        .join(Branch, Department.branch_id == Branch.id)
+        .where(and_(Queue.id == queue_id, Branch.hospital_id == target_hospital_id))
+    )
+    if not queue:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Queue not found in your hospital")
+
+    # Cascade delete tokens and events
+    token_ids = list(await db.scalars(select(QueueToken.id).where(QueueToken.queue_id == queue.id)))
+    if token_ids:
+        await db.execute(delete(QueueEvent).where(QueueEvent.token_id.in_(token_ids)))
+    await db.execute(delete(QueueEvent).where(QueueEvent.queue_id == queue.id))
+    await db.execute(delete(QueuePause).where(QueuePause.queue_id == queue.id))
+    await db.execute(delete(QueueToken).where(QueueToken.queue_id == queue.id))
+    await db.delete(queue)
+    await db.commit()
+
+    return {"status": "success", "message": f"Queue '{queue.name}' deleted successfully"}
+
