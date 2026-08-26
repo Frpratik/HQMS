@@ -27,6 +27,148 @@
 
 ---
 
+## 📸 Product Showcase
+
+> HQMS provides dedicated interfaces for hospital administrators, physicians, patients, and public waiting areas, connected through a real-time virtual queue engine.
+
+### 🛡️ Platform Super Administration & Hospital Onboarding
+
+<p align="center">
+  <img src="./Screenshots/Super%20Admin%20Login.png" width="48%" alt="Platform Super Admin Master Gateway" />
+  <img src="./Screenshots/Super%20Admin%20Console.png" width="48%" alt="Platform Fleet Telemetry & Tenant Management" />
+</p>
+
+* **Platform Master Login**: Secure 256-bit encrypted authentication gateway restricted to platform super administrators.
+* **Super Admin Console**: Centralized multi-tenant fleet overview with live telemetry across all provisioned hospital facilities, active branches, staff accounts, and OPD engines.
+
+<p align="center">
+  <img src="./Screenshots/Onboard%20Hospital.png" width="70%" alt="1-Click Hospital Onboarding Modal" />
+</p>
+
+* **1-Click Atomic Hospital Onboarding**: Instant provisioning modal creating an isolated tenant partition, administrator credentials, and automated welcome email dispatch.
+
+---
+
+### 🏥 Hospital Administration & Clinical Configuration
+
+<p align="center">
+  <img src="./Screenshots/Hospital%20Admin%20Login.png" width="48%" alt="Hospital Admin Workstation Sign In" />
+  <img src="./Screenshots/Hospital%20Admin%20Console.png" width="48%" alt="Hospital Operations Suite" />
+</p>
+
+* **Hospital Admin Sign In**: Dedicated workstation portal for hospital administrators and clinical managers.
+* **Hospital Admin Console**: Operations workspace for managing departments, examination rooms, staff directories, and active OPD queue engines.
+
+<p align="center">
+  <img src="./Screenshots/Hospital%20Admin%20Add%20Doctor.png" width="48%" alt="Doctor Onboarding Confirmation" />
+  <img src="./Screenshots/Hospital%20Admin%20Add%20Receptionist.png" width="48%" alt="Receptionist Onboarding Confirmation" />
+</p>
+
+* **Physician Onboarding**: Provisioning modal for doctors with automatic system invitation and credential generation.
+* **Receptionist Onboarding**: Front desk staff account generation with immediate station role assignment and email dispatch.
+
+<p align="center">
+  <img src="./Screenshots/Hospital%20Admin%20Add%20OPD%20Queue.png" width="48%" alt="OPD Queue Deployment" />
+  <img src="./Screenshots/Hospital%20Admin%20Assign%20Doctor%20to%20OPD.png" width="48%" alt="Physician Queue Assignment" />
+</p>
+
+* **OPD Queue Deployment**: Real-time queue creation with customized token prefixes, consultation pacing targets, and department linking.
+* **Physician Queue Assignment**: Operational controls to assign designated doctors and examination rooms to active OPD queues.
+
+---
+
+### 👥 Receptionist Desk & Patient Intake
+
+<p align="center">
+  <img src="./Screenshots/Receptionist%20Login.png" width="48%" alt="Receptionist Station Login" />
+  <img src="./Screenshots/Receptionist%20Console.png" width="48%" alt="Receptionist Intake Desk" />
+</p>
+
+* **Receptionist Station Sign In**: Rapid workstation authentication for front desk receptionists.
+* **Receptionist Console**: Real-time patient intake board displaying live queue progress, priority triage status, and stepped-away patients.
+
+<p align="center">
+  <img src="./Screenshots/Receptionist%20Add%20Patient.png" width="48%" alt="Walk-In Registration Modal" />
+  <img src="./Screenshots/Receptionist%20Patient%20Slip.png" width="48%" alt="Printable Thermal Token Slip" />
+</p>
+
+* **Walk-In Registration & Triage**: Rapid intake modal (<5 seconds) capturing patient details, priority classification (Normal, High, Emergency), and triage notes.
+* **Printable Thermal Token Slip**: High-contrast printable consultation pass featuring token numbers, estimated wait windows, and scan-to-track QR codes.
+
+---
+
+### 🩺 Physician Workstation & Clinical Pacing
+
+<p align="center">
+  <img src="./Screenshots/Doctor%20Login.png" width="48%" alt="Doctor Clinical Station Login" />
+  <img src="./Screenshots/Doctor%20Console.png" width="48%" alt="Doctor Examination Command Center" />
+</p>
+
+* **Doctor Station Sign In**: Direct authentication portal for attending clinical physicians.
+* **Doctor Console**: 1-click clinical workstation for advancing virtual queues, checking corridor wait counts, and monitoring pacing timers.
+
+<p align="center">
+  <img src="./Screenshots/Doctor%20Calling%20Patient.png" width="48%" alt="Doctor Calling Patient" />
+  <img src="./Screenshots/Doctor%20Completing%20Patient.png" width="48%" alt="Active Consultation with Elapsed Timer" />
+</p>
+
+* **Calling Patient to Examination Room**: One-click action notifying the next patient in line and broadcasting immediate visual/audio chimes to waiting room displays.
+* **Active Consultation & Pacing**: Real-time elapsed consultation timer with controls to complete the visit, advance to the next patient, or handle skips.
+
+<p align="center">
+  <img src="./Screenshots/Doctor%20Interface%20When%20Pausing%20Queue.png" width="48%" alt="Queue Pause Modal" />
+  <img src="./Screenshots/Doctor%20Interface%20When%20Queue%20Paused.png" width="48%" alt="Doctor Paused State Banner" />
+</p>
+
+* **Queue Pause Configuration**: Modal allowing doctors to set clinical pause reasons (emergency ward call, rounds) and expected resumption estimates.
+* **Active Pause State Banner**: Notice banner indicating active queue suspension, automatically updating patient mobile screens and TV waiting boards.
+
+<p align="center">
+  <img src="./Screenshots/Dr%20Waiting%20for%20Patient.png" width="70%" alt="Physician Waiting for Patient Entry" />
+</p>
+
+* **Physician Waiting for Patient Entry**: Cabin standby state showing patient token calling status while the patient walks into the examination room.
+
+---
+
+### 📱 Patient Live Virtual Queue Experience
+
+<p align="center">
+  <img src="./Screenshots/Patient%20Interface.png" width="48%" alt="Mobile Live Queue Pass" />
+  <img src="./Screenshots/Patient%20Interface%202.png" width="48%" alt="Patient Presence & Stepping Away Controls" />
+</p>
+
+* **Live Mobile Queue Tracker**: Zero-install mobile web tracker displaying real-time queue position, assigned doctor, examination cabin, and dynamic wait times.
+* **Presence & Stepping Away Signals**: Self-service patient controls to safely step away to the cafeteria or pharmacy without losing queue position.
+
+<p align="center">
+  <img src="./Screenshots/Patient%20Screen%20When%20Doctor%20Is%20Waiting.png" width="48%" alt="Escalated Turn Called Alert" />
+  <img src="./Screenshots/Patient%20When%20Consultation%20Is%20Over.png" width="48%" alt="Consultation Completed State" />
+</p>
+
+* **Turn Called Screen Alert**: High-contrast, audio-enabled alert prompting the patient to proceed immediately to the doctor's consultation cabin.
+* **Consultation Completed Confirmation**: Clean final state confirming completion of the medical consultation.
+
+---
+
+### 📺 Public TV Waiting Room Display Board
+
+<p align="center">
+  <img src="./Screenshots/TV%20Display.png" width="48%" alt="Public TV Waiting Room Board" />
+  <img src="./Screenshots/TV%20Display%20When%20Queue%20Paused.png" width="48%" alt="TV Display During Pause State" />
+</p>
+
+* **Public TV Waiting Room Display**: Privacy-safe, high-contrast board for wall-mounted clinic monitors showing active tokens and upcoming queue positions.
+* **TV Display During Queue Pause**: Real-time procedure pause notification keeping patients in waiting areas informed of doctor availability.
+
+<p align="center">
+  <img src="./Screenshots/TV%20Screen%20When%20Doctor%20Is%20Waiting.png" width="70%" alt="TV Screen Active Turn Calling" />
+</p>
+
+* **TV Screen Active Calling Notice**: Full-screen visual and audio chime alerting the called patient to enter the consultation room immediately.
+
+---
+
 ## 🏛️ System Architecture
 
 ```mermaid
