@@ -19,6 +19,10 @@ import {
   UserCheck,
   Calendar,
   Sparkles,
+  Copy,
+  Check,
+  Mail,
+  X,
 } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import {
@@ -45,6 +49,14 @@ export default function HospitalAdminDepartmentsPage() {
   const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
   const [isQueueModalOpen, setIsQueueModalOpen] = useState(false);
+  const [staffSuccess, setStaffSuccess] = useState<{
+    id: string;
+    full_name: string;
+    email: string;
+    role: string;
+    password: string;
+  } | null>(null);
+  const [copiedStaffKey, setCopiedStaffKey] = useState(false);
 
   // Form states
   const [deptForm, setDeptForm] = useState({ name: "", code: "" });
@@ -108,11 +120,19 @@ export default function HospitalAdminDepartmentsPage() {
 
   const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!roomForm.department_id || !roomForm.room_number) return;
+    const deptId = roomForm.department_id || overview?.departments[0]?.id;
+    if (!roomForm.room_number || !deptId) {
+      alert("Please select a department and enter room number.");
+      return;
+    }
     try {
       setActionLoading(true);
-      await api.hospitalAdmin.createRoom(roomForm);
-      setRoomForm((prev) => ({ ...prev, name: "", room_number: "" }));
+      await api.hospitalAdmin.createRoom({
+        ...roomForm,
+        department_id: deptId,
+        name: roomForm.name || `Room ${roomForm.room_number}`,
+      });
+      setRoomForm({ department_id: "", name: "", room_number: "" });
       setIsRoomModalOpen(false);
       fetchOverview();
     } catch (err: any) {
@@ -127,15 +147,14 @@ export default function HospitalAdminDepartmentsPage() {
     if (!staffForm.full_name || !staffForm.email || !staffForm.password) return;
     try {
       setActionLoading(true);
-      await api.hospitalAdmin.inviteStaff(staffForm);
-      setStaffForm({
-        full_name: "",
-        email: "",
-        password: "",
-        phone_number: "",
-        role: "DOCTOR",
+      const res = await api.hospitalAdmin.inviteStaff(staffForm);
+      setStaffSuccess({
+        id: res.id,
+        full_name: staffForm.full_name,
+        email: staffForm.email,
+        role: staffForm.role,
+        password: staffForm.password,
       });
-      setIsStaffModalOpen(false);
       fetchOverview();
     } catch (err: any) {
       alert(`Error creating staff member: ${err.message}`);
@@ -635,71 +654,189 @@ export default function HospitalAdminDepartmentsPage() {
       {/* ============================================================ */}
       {isStaffModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-6 shadow-xl animate-fade-in text-slate-900">
-            <h3 className="text-lg font-extrabold text-slate-900 mb-1">Add Staff Account</h3>
-            <p className="text-xs text-slate-500 mb-4">Create physician or receptionist login</p>
-            <form onSubmit={handleCreateStaff} className="space-y-3">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-xl animate-fade-in text-slate-900">
+            {staffSuccess ? (
+              /* Success View */
+              <div className="space-y-5 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto border border-emerald-200">
+                  <CheckCircle2 className="w-7 h-7" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900">Staff Account Created!</h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    "{staffSuccess.full_name}" has been registered and assigned workstation access.
+                  </p>
+                </div>
+
+                <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold border border-slate-200 bg-slate-50">
+                  {staffSuccess.role === "DOCTOR" ? (
+                    <>
+                      <Stethoscope className="w-3.5 h-3.5 text-emerald-700" />
+                      <span className="text-emerald-800">Doctor / Physician Station</span>
+                    </>
+                  ) : (
+                    <>
+                      <Users className="w-3.5 h-3.5 text-blue-700" />
+                      <span className="text-blue-800">Front Desk Receptionist</span>
+                    </>
+                  )}
+                </div>
+
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-900 font-semibold flex items-center justify-center space-x-2">
+                  <Check className="w-4 h-4 text-emerald-600" />
+                  <span>Invitation email containing station credentials sent to <strong>{staffSuccess.email}</strong></span>
+                </div>
+
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-left font-mono text-xs space-y-2">
+                  <div className="flex justify-between border-b border-slate-200 pb-2">
+                    <span className="text-slate-500">Designated Role:</span>
+                    <span className="text-slate-900 font-bold">{staffSuccess.role === "DOCTOR" ? "Physician / Doctor" : "Receptionist"}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-slate-200 pb-2">
+                    <span className="text-slate-500">Login Email:</span>
+                    <span className="text-slate-900 font-bold">{staffSuccess.email}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-slate-200 pb-2">
+                    <span className="text-slate-500">Initial Password:</span>
+                    <span className="text-amber-800 font-bold">{staffSuccess.password}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Login Portal:</span>
+                    <span className="text-emerald-700 font-bold truncate max-w-[200px]">{window.location.origin}/login</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await api.hospitalAdmin.resendStaffInvite(staffSuccess.id);
+                        alert(`Credentials email re-sent to ${staffSuccess.email}!`);
+                      } catch (err: any) {
+                        alert(`Failed to send email: ${err.message}`);
+                      }
+                    }}
+                    className="w-full py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 transition border border-blue-200"
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    <span>Resend Email</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = `Hospital Staff Account: ${staffSuccess.full_name}\nRole: ${staffSuccess.role}\nEmail: ${staffSuccess.email}\nPassword: ${staffSuccess.password}\nLogin Portal: ${window.location.origin}/login`;
+                      navigator.clipboard.writeText(text);
+                      setCopiedStaffKey(true);
+                      setTimeout(() => setCopiedStaffKey(false), 2000);
+                    }}
+                    className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 transition border border-slate-200"
+                  >
+                    {copiedStaffKey ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedStaffKey ? "Copied!" : "Copy Details"}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsStaffModalOpen(false);
+                      setStaffSuccess(null);
+                      setStaffForm({
+                        full_name: "",
+                        email: "",
+                        password: "",
+                        phone_number: "",
+                        role: "DOCTOR",
+                      });
+                    }}
+                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs transition shadow-xs"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Create Form View */
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Full Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Dr. Ananya Roy"
-                  value={staffForm.full_name}
-                  onChange={(e) => setStaffForm((prev) => ({ ...prev, full_name: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
-                />
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900">Add Staff Account</h3>
+                    <p className="text-xs text-slate-500">Create physician or receptionist login</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsStaffModalOpen(false)}
+                    className="p-1 text-slate-400 hover:text-slate-600 transition"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreateStaff} className="space-y-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">Full Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Dr. Ananya Roy"
+                      value={staffForm.full_name}
+                      onChange={(e) => setStaffForm((prev) => ({ ...prev, full_name: e.target.value }))}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">Email Address *</label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="doctor@hospital.com"
+                      value={staffForm.email}
+                      onChange={(e) => setStaffForm((prev) => ({ ...prev, email: e.target.value }))}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">Initial Password *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="DoctorPass123!"
+                      value={staffForm.password}
+                      onChange={(e) => setStaffForm((prev) => ({ ...prev, password: e.target.value }))}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">Role *</label>
+                    <select
+                      value={staffForm.role}
+                      onChange={(e) => setStaffForm((prev) => ({ ...prev, role: e.target.value as UserRole }))}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                    >
+                      <option value="DOCTOR">Doctor / Physician Station</option>
+                      <option value="RECEPTIONIST">Front Desk Receptionist</option>
+                    </select>
+                  </div>
+                  <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setIsStaffModalOpen(false)}
+                      className="px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={actionLoading}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs"
+                    >
+                      {actionLoading ? "Provisioning & Emailing..." : "Create & Send Credentials"}
+                    </button>
+                  </div>
+                </form>
               </div>
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Email *</label>
-                <input
-                  type="email"
-                  required
-                  placeholder="doctor@hospital.com"
-                  value={staffForm.email}
-                  onChange={(e) => setStaffForm((prev) => ({ ...prev, email: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Initial Password *</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Minimum 6 characters"
-                  value={staffForm.password}
-                  onChange={(e) => setStaffForm((prev) => ({ ...prev, password: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Role *</label>
-                <select
-                  value={staffForm.role}
-                  onChange={(e) => setStaffForm((prev) => ({ ...prev, role: e.target.value as UserRole }))}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="DOCTOR">Doctor</option>
-                  <option value="RECEPTIONIST">Receptionist</option>
-                </select>
-              </div>
-              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsStaffModalOpen(false)}
-                  className="px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-900"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs"
-                >
-                  {actionLoading ? "Saving..." : "Create Account"}
-                </button>
-              </div>
-            </form>
+            )}
           </div>
         </div>
       )}

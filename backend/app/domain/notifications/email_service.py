@@ -167,10 +167,29 @@ Please sign in and set up your departments, doctors, and receptionist desks.
         temp_password: str,
         login_url: Optional[str] = None,
     ) -> bool:
-        """Dispatches credentials email to newly invited Doctor or Receptionist."""
+        """Dispatches specialized credentials email to newly invited Doctor or Receptionist."""
         portal_url = login_url or f"{settings.FRONTEND_URL}/login"
-        role_label = "Physician / Doctor Station" if "DOCTOR" in role.upper() else "Front Desk Receptionist"
-        subject = f"Your HQMS Clinical Station Credentials — {hospital_name}"
+        is_doctor = "DOCTOR" in role.upper()
+        is_receptionist = "RECEPTIONIST" in role.upper()
+
+        if is_doctor:
+            subject = f"Your Doctor Workstation Credentials — {hospital_name}"
+            role_label = "Doctor / Physician Station"
+            role_badge_bg = "#ecfdf5"
+            role_badge_color = "#047857"
+            role_intro = f"Your Doctor workstation account has been provisioned at <strong>{hospital_name}</strong>. You can now sign in to manage patient consultations, call OPD tokens, and view live clinical queues."
+        elif is_receptionist:
+            subject = f"Your Reception Desk Credentials — {hospital_name}"
+            role_label = "Front Desk Receptionist Station"
+            role_badge_bg = "#eff6ff"
+            role_badge_color = "#1d4ed8"
+            role_intro = f"Your Front Desk Receptionist account has been provisioned at <strong>{hospital_name}</strong>. You can now sign in to register walk-in patients, print QR tracking token slips, and coordinate queue admissions."
+        else:
+            subject = f"Your Staff Account Credentials — {hospital_name}"
+            role_label = role
+            role_badge_bg = "#f3e8ff"
+            role_badge_color = "#7e22ce"
+            role_intro = f"Your staff workstation account has been provisioned at <strong>{hospital_name}</strong>."
 
         html_body = f"""
         <!DOCTYPE html>
@@ -180,7 +199,7 @@ Please sign in and set up your departments, doctors, and receptionist desks.
           <style>
             body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; }}
             .card {{ max-width: 580px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }}
-            .badge {{ display: inline-block; background: #eff6ff; color: #1d4ed8; font-weight: 700; font-size: 11px; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; }}
+            .badge {{ display: inline-block; background: {role_badge_bg}; color: {role_badge_color}; font-weight: 700; font-size: 11px; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; }}
             .title {{ font-size: 22px; font-weight: 800; color: #0f172a; margin-top: 12px; }}
             .text {{ font-size: 14px; color: #475569; line-height: 1.6; margin: 16px 0; }}
             .creds-box {{ background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 12px; padding: 18px; margin: 20px 0; font-family: monospace; font-size: 13px; color: #0f172a; }}
@@ -191,19 +210,19 @@ Please sign in and set up your departments, doctors, and receptionist desks.
         <body>
           <div class="card">
             <span class="badge">{role_label}</span>
-            <h1 class="title">Your Clinical Station Account is Ready</h1>
+            <h1 class="title">Your {role_label} is Ready</h1>
             <p class="text">
               Hello <strong>{staff_name}</strong>,<br><br>
-              An account has been created for you at <strong>{hospital_name}</strong>. You can now access your assigned clinical workstation.
+              {role_intro}
             </p>
             <div class="creds-box">
               <div><strong>Hospital:</strong> {hospital_name}</div>
-              <div><strong>Role:</strong> {role_label}</div>
-              <div><strong>Work Email:</strong> {staff_email}</div>
-              <div><strong>Password:</strong> {temp_password}</div>
-              <div><strong>Login URL:</strong> <a href="{portal_url}">{portal_url}</a></div>
+              <div><strong>Designated Role:</strong> {role_label}</div>
+              <div><strong>Login Email:</strong> {staff_email}</div>
+              <div><strong>Temporary Password:</strong> {temp_password}</div>
+              <div><strong>Portal URL:</strong> <a href="{portal_url}">{portal_url}</a></div>
             </div>
-            <a href="{portal_url}" class="btn" style="color: #ffffff;">Launch Station &rarr;</a>
+            <a href="{portal_url}" class="btn" style="color: #ffffff;">Launch {role_label} &rarr;</a>
             <div class="footer">
               HQMS Clinical Station Access · {hospital_name}
             </div>
@@ -213,15 +232,16 @@ Please sign in and set up your departments, doctors, and receptionist desks.
         """
 
         text_body = f"""
-HQMS Station Credentials — {hospital_name}
+HQMS {role_label} Credentials — {hospital_name}
 
 Hello {staff_name},
 
-Your {role_label} account has been created at {hospital_name}.
+{role_intro}
 
-Login URL: {portal_url}
-Work Email: {staff_email}
+Portal URL: {portal_url}
+Login Email: {staff_email}
 Password: {temp_password}
+Role: {role_label}
         """
 
         return await cls.send_email(
