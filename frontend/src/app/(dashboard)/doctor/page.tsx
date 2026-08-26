@@ -226,12 +226,12 @@ export default function DoctorConsolePage() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased selection:bg-emerald-500 selection:text-white">
       {/* ============================================================ */}
-      {/* TOP CLINICAL NAVIGATION BAR                                  */}
+      {/* TOP NAVIGATION BAR                                           */}
       {/* ============================================================ */}
-      <header className="bg-white border-b border-slate-200/90 sticky top-0 z-40 px-6 py-3.5 flex items-center justify-between shadow-xs">
+      <header className="bg-white border-b border-slate-200/90 sticky top-0 z-40 px-4 sm:px-6 py-3 sm:py-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 shadow-xs">
         <div className="flex items-center space-x-3">
           <Link href="/" className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black shadow-xs">
+            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black shadow-xs shrink-0">
               <Stethoscope className="w-5 h-5" />
             </div>
             <div>
@@ -244,7 +244,7 @@ export default function DoctorConsolePage() {
         </div>
 
         {/* Queue Selector & Clinical Controls */}
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <select
             value={selectedQueueId || ""}
             onChange={(e) => setSelectedQueueId(e.target.value)}

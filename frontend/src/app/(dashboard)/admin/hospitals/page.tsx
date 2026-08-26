@@ -244,10 +244,10 @@ export default function PlatformAdminHospitalsPage() {
       {/* ============================================================ */}
       {/* TOP NAVIGATION BAR                                           */}
       {/* ============================================================ */}
-      <header className="bg-white border-b border-slate-200/90 sticky top-0 z-40 px-6 py-3.5 flex items-center justify-between shadow-xs">
+      <header className="bg-white border-b border-slate-200/90 sticky top-0 z-40 px-4 sm:px-6 py-3 sm:py-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 shadow-xs">
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-purple-700 text-white flex items-center justify-center font-black shadow-xs">
+            <div className="w-9 h-9 rounded-xl bg-purple-700 text-white flex items-center justify-center font-black shadow-xs shrink-0">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
@@ -474,7 +474,7 @@ export default function PlatformAdminHospitalsPage() {
       {/* ============================================================ */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl space-y-6 animate-fade-in relative my-8 text-slate-900">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-xl w-full p-5 sm:p-8 shadow-2xl space-y-6 animate-fade-in relative my-8 max-h-[90vh] overflow-y-auto text-slate-900">
             {provisionSuccess ? (
               /* Success View */
               <div className="space-y-6 text-center">

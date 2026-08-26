@@ -25,7 +25,6 @@ import {
   X,
   Edit2,
   Trash2,
-  KeyRound,
   AlertTriangle,
 } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
@@ -398,13 +397,13 @@ export default function HospitalAdminDepartmentsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased selection:bg-emerald-500 selection:text-white">
       {/* ============================================================ */}
       {/* TOP CLINICAL COMMAND BAR                                     */}
       {/* ============================================================ */}
-      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-xs">
+      <header className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 sticky top-0 z-20 shadow-xs">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-xs">
+          <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-xs shrink-0">
             <Building2 className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -422,7 +421,7 @@ export default function HospitalAdminDepartmentsPage() {
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-3 self-end sm:self-auto">
           <button
             onClick={fetchOverview}
             disabled={loading}
@@ -434,7 +433,7 @@ export default function HospitalAdminDepartmentsPage() {
           <div className="h-6 w-[1px] bg-slate-200" />
           <div className="flex items-center space-x-2 px-3 py-1.5 bg-slate-100 rounded-xl border border-slate-200">
             <Shield className="w-4 h-4 text-emerald-700" />
-            <span className="text-xs font-bold text-slate-800 font-mono">
+            <span className="text-xs font-bold text-slate-800 font-mono truncate max-w-[120px] sm:max-w-none">
               {user?.full_name || "Hospital Admin"}
             </span>
           </div>
@@ -456,67 +455,67 @@ export default function HospitalAdminDepartmentsPage() {
       {/* ============================================================ */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
         {/* KPI Strip */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
               <span>Departments</span>
               <Layers className="w-4 h-4 text-emerald-700" />
             </span>
             <div className="my-2">
-              <span className="text-3xl font-mono font-black text-slate-950 tracking-tight tabular-nums">
+              <span className="text-2xl sm:text-3xl font-mono font-black text-slate-950 tracking-tight tabular-nums">
                 {overview?.departments.length || 0}
               </span>
             </div>
             <span className="text-xs text-slate-500 font-medium">Clinical specialties</span>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
-              <span>Examination Rooms</span>
+              <span>Exam Rooms</span>
               <DoorOpen className="w-4 h-4 text-blue-700" />
             </span>
             <div className="my-2">
-              <span className="text-3xl font-mono font-black text-blue-900 tracking-tight tabular-nums">
+              <span className="text-2xl sm:text-3xl font-mono font-black text-blue-900 tracking-tight tabular-nums">
                 {overview?.rooms.length || 0}
               </span>
             </div>
             <span className="text-xs text-slate-500 font-medium">Active clinical cabins</span>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
-              <span>Hospital Staff</span>
+              <span>Staff</span>
               <Users className="w-4 h-4 text-purple-700" />
             </span>
             <div className="my-2">
-              <span className="text-3xl font-mono font-black text-purple-900 tracking-tight tabular-nums">
+              <span className="text-2xl sm:text-3xl font-mono font-black text-purple-900 tracking-tight tabular-nums">
                 {overview?.staff.length || 0}
               </span>
             </div>
-            <span className="text-xs text-slate-500 font-medium">Doctors & Receptionists</span>
+            <span className="text-xs text-slate-500 font-medium">Doctors & Reception</span>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
-              <span>Active OPD Queues</span>
+              <span>OPD Queues</span>
               <Activity className="w-4 h-4 text-teal-700" />
             </span>
             <div className="my-2">
-              <span className="text-3xl font-mono font-black text-teal-900 tracking-tight tabular-nums">
+              <span className="text-2xl sm:text-3xl font-mono font-black text-teal-900 tracking-tight tabular-nums">
                 {overview?.queues.length || 0}
               </span>
             </div>
-            <span className="text-xs text-slate-500 font-medium">Real-time patient queues</span>
+            <span className="text-xs text-slate-500 font-medium">Live patient queues</span>
           </div>
         </div>
 
         {/* Tab Navigation & Action Bar */}
         <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-5 shadow-sm space-y-5">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-            <div className="flex space-x-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div className="flex space-x-1 sm:space-x-2 overflow-x-auto pb-1 sm:pb-0">
               <button
                 onClick={() => setActiveTab("departments")}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition ${
                   activeTab === "departments"
                     ? "bg-slate-900 text-white shadow-xs"
                     : "bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -526,7 +525,7 @@ export default function HospitalAdminDepartmentsPage() {
               </button>
               <button
                 onClick={() => setActiveTab("staff")}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition ${
                   activeTab === "staff"
                     ? "bg-slate-900 text-white shadow-xs"
                     : "bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -536,7 +535,7 @@ export default function HospitalAdminDepartmentsPage() {
               </button>
               <button
                 onClick={() => setActiveTab("queues")}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition ${
                   activeTab === "queues"
                     ? "bg-slate-900 text-white shadow-xs"
                     : "bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -551,14 +550,14 @@ export default function HospitalAdminDepartmentsPage() {
                 <>
                   <button
                     onClick={() => setIsDeptModalOpen(true)}
-                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center space-x-1.5 shadow-xs transition"
+                    className="flex-1 sm:flex-initial px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-xs transition"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add Department</span>
                   </button>
                   <button
                     onClick={() => setIsRoomModalOpen(true)}
-                    className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 font-bold rounded-xl text-xs flex items-center space-x-1.5 transition"
+                    className="flex-1 sm:flex-initial px-3.5 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add Room</span>
@@ -568,7 +567,7 @@ export default function HospitalAdminDepartmentsPage() {
               {activeTab === "staff" && (
                 <button
                   onClick={() => setIsStaffModalOpen(true)}
-                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center space-x-1.5 shadow-xs transition"
+                  className="w-full sm:w-auto px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-xs transition"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add Staff Member</span>
@@ -577,7 +576,7 @@ export default function HospitalAdminDepartmentsPage() {
               {activeTab === "queues" && (
                 <button
                   onClick={() => setIsQueueModalOpen(true)}
-                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center space-x-1.5 shadow-xs transition"
+                  className="w-full sm:w-auto px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-xs transition"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Deploy New Queue</span>
@@ -592,7 +591,7 @@ export default function HospitalAdminDepartmentsPage() {
               {overview?.departments.map((dept) => (
                 <div
                   key={dept.id}
-                  className="p-5 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col justify-between hover:border-slate-300 transition"
+                  className="p-4 sm:p-5 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col justify-between hover:border-slate-300 transition"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
@@ -681,7 +680,7 @@ export default function HospitalAdminDepartmentsPage() {
 
           {/* TAB 2: STAFF DIRECTORY */}
           {activeTab === "staff" && (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
               <table className="w-full text-left text-sm text-slate-800">
                 <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
                   <tr>
@@ -729,7 +728,7 @@ export default function HospitalAdminDepartmentsPage() {
                                 alert(`Failed to send email: ${err.message}`);
                               }
                             }}
-                            className="px-2.5 py-1 text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-lg transition"
+                            className="px-2.5 py-1 text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-lg transition whitespace-nowrap"
                           >
                             Email Credentials
                           </button>
@@ -768,7 +767,7 @@ export default function HospitalAdminDepartmentsPage() {
 
           {/* TAB 3: LIVE OPD QUEUES */}
           {activeTab === "queues" && (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
               <table className="w-full text-left text-sm text-slate-800">
                 <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
                   <tr>
@@ -777,7 +776,7 @@ export default function HospitalAdminDepartmentsPage() {
                     <th className="py-3 px-4">Department</th>
                     <th className="py-3 px-4">Assigned Doctor</th>
                     <th className="py-3 px-4">Room</th>
-                    <th className="py-3 px-4">Pacing Target</th>
+                    <th className="py-3 px-4">Pacing</th>
                     <th className="py-3 px-4">Status</th>
                     <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
@@ -799,7 +798,7 @@ export default function HospitalAdminDepartmentsPage() {
                         {q.room_number ? `Room ${q.room_number}` : <span className="text-slate-400 italic">—</span>}
                       </td>
                       <td className="py-3.5 px-4 text-xs font-mono font-bold text-slate-700">
-                        {q.default_consult_time_min} mins
+                        {q.default_consult_time_min}m
                       </td>
                       <td className="py-3.5 px-4">
                         <span
@@ -856,8 +855,8 @@ export default function HospitalAdminDepartmentsPage() {
       {/* MODAL: ADD DEPARTMENT                                        */}
       {/* ============================================================ */}
       {isDeptModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-6 shadow-xl animate-fade-in text-slate-900">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-xl animate-fade-in text-slate-900 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-extrabold text-slate-900 mb-1">Add Department</h3>
             <p className="text-xs text-slate-500 mb-4">Create a clinical department specialty</p>
             <form onSubmit={handleCreateDepartment} className="space-y-3">
@@ -908,8 +907,8 @@ export default function HospitalAdminDepartmentsPage() {
       {/* MODAL: EDIT DEPARTMENT                                       */}
       {/* ============================================================ */}
       {editingDept && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-6 shadow-xl animate-fade-in text-slate-900">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-xl animate-fade-in text-slate-900 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-extrabold text-slate-900 mb-1">Edit Department</h3>
             <p className="text-xs text-slate-500 mb-4">Update department name or clinical code</p>
             <form onSubmit={handleUpdateDepartment} className="space-y-3">
@@ -958,8 +957,8 @@ export default function HospitalAdminDepartmentsPage() {
       {/* MODAL: DELETE DEPARTMENT CONFIRMATION                         */}
       {/* ============================================================ */}
       {deletingDept && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-6 shadow-xl animate-fade-in text-slate-900">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-xl animate-fade-in text-slate-900 max-h-[90vh] overflow-y-auto">
             <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-4">
               <AlertTriangle className="w-6 h-6" />
             </div>
@@ -992,8 +991,8 @@ export default function HospitalAdminDepartmentsPage() {
       {/* MODAL: ADD ROOM                                              */}
       {/* ============================================================ */}
       {isRoomModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-6 shadow-xl animate-fade-in text-slate-900">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-xl animate-fade-in text-slate-900 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-extrabold text-slate-900 mb-1">Add Examination Room</h3>
             <p className="text-xs text-slate-500 mb-4">Add a clinical cabin to a department</p>
             <form onSubmit={handleCreateRoom} className="space-y-3">
@@ -1057,8 +1056,8 @@ export default function HospitalAdminDepartmentsPage() {
       {/* MODAL: EDIT ROOM                                             */}
       {/* ============================================================ */}
       {editingRoom && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-6 shadow-xl animate-fade-in text-slate-900">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-xl animate-fade-in text-slate-900 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-extrabold text-slate-900 mb-1">Edit Examination Room</h3>
             <p className="text-xs text-slate-500 mb-4">Update room details or assigned department</p>
             <form onSubmit={handleUpdateRoom} className="space-y-3">
@@ -1120,8 +1119,8 @@ export default function HospitalAdminDepartmentsPage() {
       {/* MODAL: DELETE ROOM CONFIRMATION                              */}
       {/* ============================================================ */}
       {deletingRoom && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-6 shadow-xl animate-fade-in text-slate-900">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-xl animate-fade-in text-slate-900 max-h-[90vh] overflow-y-auto">
             <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-4">
               <AlertTriangle className="w-6 h-6" />
             </div>
@@ -1154,14 +1153,14 @@ export default function HospitalAdminDepartmentsPage() {
       {/* MODAL: ADD STAFF                                             */}
       {/* ============================================================ */}
       {isStaffModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-xl animate-fade-in text-slate-900">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-xl animate-fade-in text-slate-900 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-extrabold text-slate-900 mb-1">Onboard Staff Member</h3>
             <p className="text-xs text-slate-500 mb-4">
               Create credentials for Doctors, Receptionists, or Clinic Assistants
             </p>
             <form onSubmit={handleInviteStaff} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">Full Name *</label>
                   <input
@@ -1198,7 +1197,7 @@ export default function HospitalAdminDepartmentsPage() {
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">Phone (Optional)</label>
                   <input
@@ -1246,12 +1245,12 @@ export default function HospitalAdminDepartmentsPage() {
       {/* MODAL: EDIT STAFF                                            */}
       {/* ============================================================ */}
       {editingStaff && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-xl animate-fade-in text-slate-900">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-xl animate-fade-in text-slate-900 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-extrabold text-slate-900 mb-1">Edit Staff Member</h3>
             <p className="text-xs text-slate-500 mb-4">Update profile, role, status, or reset password</p>
             <form onSubmit={handleUpdateStaff} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">Full Name *</label>
                   <input
@@ -1286,7 +1285,7 @@ export default function HospitalAdminDepartmentsPage() {
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">Phone Number</label>
                   <input
@@ -1343,8 +1342,8 @@ export default function HospitalAdminDepartmentsPage() {
       {/* MODAL: DELETE STAFF CONFIRMATION                             */}
       {/* ============================================================ */}
       {deletingStaff && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-6 shadow-xl animate-fade-in text-slate-900">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-xl animate-fade-in text-slate-900 max-h-[90vh] overflow-y-auto">
             <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-4">
               <AlertTriangle className="w-6 h-6" />
             </div>
@@ -1377,8 +1376,8 @@ export default function HospitalAdminDepartmentsPage() {
       {/* MODAL: DEPLOY QUEUE                                          */}
       {/* ============================================================ */}
       {isQueueModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-xl animate-fade-in text-slate-900">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-xl animate-fade-in text-slate-900 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-extrabold text-slate-900 mb-1">Deploy OPD Queue</h3>
             <p className="text-xs text-slate-500 mb-4">Link department, room, and assigned physician</p>
             <form onSubmit={handleCreateQueue} className="space-y-3">
@@ -1393,7 +1392,7 @@ export default function HospitalAdminDepartmentsPage() {
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">Prefix *</label>
                   <input
@@ -1431,7 +1430,7 @@ export default function HospitalAdminDepartmentsPage() {
                   ))}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">Assigned Physician</label>
                   <select
@@ -1492,8 +1491,8 @@ export default function HospitalAdminDepartmentsPage() {
       {/* MODAL: EDIT QUEUE                                            */}
       {/* ============================================================ */}
       {editingQueue && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-xl animate-fade-in text-slate-900">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-xl animate-fade-in text-slate-900 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-extrabold text-slate-900 mb-1">Edit OPD Queue</h3>
             <p className="text-xs text-slate-500 mb-4">Update queue parameters, assigned doctor, or room</p>
             <form onSubmit={handleUpdateQueue} className="space-y-3">
@@ -1507,7 +1506,7 @@ export default function HospitalAdminDepartmentsPage() {
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">Prefix *</label>
                   <input
@@ -1530,7 +1529,7 @@ export default function HospitalAdminDepartmentsPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">Department *</label>
                   <select
@@ -1558,7 +1557,7 @@ export default function HospitalAdminDepartmentsPage() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">Assigned Physician</label>
                   <select
@@ -1619,8 +1618,8 @@ export default function HospitalAdminDepartmentsPage() {
       {/* MODAL: DELETE QUEUE CONFIRMATION                             */}
       {/* ============================================================ */}
       {deletingQueue && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-6 shadow-xl animate-fade-in text-slate-900">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-xl animate-fade-in text-slate-900 max-h-[90vh] overflow-y-auto">
             <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-4">
               <AlertTriangle className="w-6 h-6" />
             </div>
@@ -1653,10 +1652,10 @@ export default function HospitalAdminDepartmentsPage() {
       {/* MODAL: STAFF PROVISIONED SUCCESS POPUP                       */}
       {/* ============================================================ */}
       {staffSuccess && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-xl animate-fade-in text-slate-900">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-xl animate-fade-in text-slate-900 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center space-x-3 mb-4">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
               <div>

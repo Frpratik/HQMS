@@ -165,10 +165,10 @@ export default function ReceptionDashboardPage() {
       {/* ============================================================ */}
       {/* TOP NAVIGATION BAR                                           */}
       {/* ============================================================ */}
-      <header className="bg-white border-b border-slate-200/90 sticky top-0 z-40 px-6 py-3.5 flex items-center justify-between shadow-xs">
+      <header className="bg-white border-b border-slate-200/90 sticky top-0 z-40 px-4 sm:px-6 py-3 sm:py-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 shadow-xs">
         <div className="flex items-center space-x-4">
           <Link href="/" className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black shadow-xs">
+            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black shadow-xs shrink-0">
               <Users className="w-5 h-5" />
             </div>
             <div>
@@ -181,7 +181,7 @@ export default function ReceptionDashboardPage() {
         </div>
 
         {/* Active Queue Switcher & Global Actions */}
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <label className="text-xs font-bold text-slate-500 uppercase tracking-wider hidden sm:inline-block">
             Active Queue:
           </label>
