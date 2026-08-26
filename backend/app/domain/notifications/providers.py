@@ -94,7 +94,8 @@ class WhatsAppCloudApiNotificationProvider(NotificationProvider):
         self.phone_number_id = phone_number_id
 
     async def send_sms(self, to_phone: str, message: str) -> bool:
-        return False
+        """Forwards message dispatch through Meta WhatsApp Cloud API."""
+        return await self.send_whatsapp(to_phone=to_phone, template_name="text", template_params={"text": message})
 
     async def send_whatsapp(self, to_phone: str, template_name: str, template_params: Dict[str, Any]) -> bool:
         if not self.access_token or not self.phone_number_id:
