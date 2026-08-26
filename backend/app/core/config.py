@@ -112,6 +112,17 @@ class Settings(BaseSettings):
     WHATSAPP_API_TOKEN: str | None = None
     WHATSAPP_PHONE_NUMBER_ID: str | None = None
 
+    # Email & SMTP Settings
+    SMTP_HOST: str | None = None
+    SMTP_PORT: int = 587
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: str | None = None
+    SMTP_TLS: bool = True
+    EMAILS_FROM_EMAIL: str = "notifications@hqms.health"
+    EMAILS_FROM_NAME: str = "HQMS Healthcare Network"
+    RESEND_API_KEY: str | None = None
+    FRONTEND_URL: str = "http://localhost:3000"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

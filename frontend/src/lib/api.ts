@@ -179,6 +179,11 @@ export const api = {
         method: "POST",
         body: JSON.stringify(data),
       }),
+    resendWelcomeEmail: (hospitalId: string) =>
+      request<{ status: string; sent: boolean; recipient: string }>(
+        `/platform/hospitals/${hospitalId}/send-welcome-email`,
+        { method: "POST" }
+      ),
     updateStatus: (hospitalId: string, isActive: boolean) =>
       request<HospitalSummary>(`/platform/hospitals/${hospitalId}/status`, {
         method: "PATCH",
@@ -190,6 +195,13 @@ export const api = {
     getOverview: (hospitalId?: string) =>
       request<HospitalAdminOverview>(
         hospitalId ? `/hospital-admin/overview?hospital_id=${hospitalId}` : "/hospital-admin/overview"
+      ),
+    resendStaffInvite: (userId: string, hospitalId?: string) =>
+      request<{ status: string; sent: boolean; recipient: string }>(
+        hospitalId
+          ? `/hospital-admin/staff/${userId}/resend-invite?hospital_id=${hospitalId}`
+          : `/hospital-admin/staff/${userId}/resend-invite`,
+        { method: "POST" }
       ),
     createDepartment: (data: { branch_id?: string; name: string; code: string }, hospitalId?: string) =>
       request<DepartmentItem>(

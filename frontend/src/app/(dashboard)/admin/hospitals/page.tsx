@@ -431,6 +431,21 @@ export default function PlatformAdminHospitalsPage() {
 
                 <div className="flex flex-col sm:flex-row items-center gap-3">
                   <button
+                    onClick={async () => {
+                      if (!provisionSuccess) return;
+                      try {
+                        await api.platform.resendWelcomeEmail(provisionSuccess.id);
+                        alert(`Welcome and credentials email successfully dispatched to ${provisionSuccess.admin_email}!`);
+                      } catch (err: any) {
+                        alert(`Failed to send email: ${err.message}`);
+                      }
+                    }}
+                    className="w-full py-3 bg-purple-50 hover:bg-purple-100 text-purple-800 rounded-xl font-bold text-xs flex items-center justify-center space-x-2 transition border border-purple-200"
+                  >
+                    <span>Send / Resend Email</span>
+                  </button>
+
+                  <button
                     onClick={copyCredentials}
                     className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-bold text-xs flex items-center justify-center space-x-2 transition border border-slate-200"
                   >

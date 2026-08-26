@@ -428,6 +428,7 @@ export default function HospitalAdminDepartmentsPage() {
                     <th className="py-3 px-4">Role</th>
                     <th className="py-3 px-4">Phone</th>
                     <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -449,6 +450,21 @@ export default function HospitalAdminDepartmentsPage() {
                         <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                           Active
                         </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <button
+                          onClick={async () => {
+                            try {
+                              await api.hospitalAdmin.resendStaffInvite(s.id);
+                              alert(`Credentials and station login email dispatched to ${s.email}!`);
+                            } catch (err: any) {
+                              alert(`Failed to send email: ${err.message}`);
+                            }
+                          }}
+                          className="px-2.5 py-1 text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-lg transition"
+                        >
+                          Email Credentials
+                        </button>
                       </td>
                     </tr>
                   ))}

@@ -139,6 +139,18 @@ async def provision_hospital(
     await db.commit()
     await db.refresh(hospital)
 
+    # 9. Asynchronously dispatch welcome email with credentials
+    from app.domain.notifications.email_service import EmailService
+    try:
+        await EmailService.send_hospital_admin_welcome(
+            admin_email=admin_user.email,
+            admin_name=admin_user.full_name,
+            hospital_name=hospital.name,
+            temp_password=hospital_in.admin_password,
+        )
+    except Exception as e:
+        pass
+
     return {
         "id": hospital.id,
         "name": hospital.name,
@@ -151,6 +163,40 @@ async def provision_hospital(
         "default_queue_id": queue.id,
         "created_at": hospital.created_at,
     }
+
+
+@router.post(
+    "/hospitals/{hospital_id}/send-welcome-email",
+    summary="Resend Welcome Email to Hospital Admin",
+)
+async def resend_welcome_email(
+    hospital_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: StaffUser = Depends(require_roles(UserRole.SUPER_ADMIN)),
+) -> Any:
+    """Dispatches a fresh welcome & login portal email to the hospital administrator."""
+    from app.domain.notifications.email_service import EmailService
+
+    hospital = await db.scalar(select(Hospital).where(Hospital.id == hospital_id))
+    if not hospital:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hospital not found")
+
+    admin = await db.scalar(
+        select(StaffUser).where(
+            StaffUser.hospital_id == hospital_id,
+            StaffUser.role == UserRole.HOSPITAL_ADMIN,
+        )
+    )
+    if not admin:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hospital administrator account not found")
+
+    sent = await EmailService.send_hospital_admin_welcome(
+        admin_email=admin.email,
+        admin_name=admin.full_name,
+        hospital_name=hospital.name,
+        temp_password="[Configured during onboarding - contact Super Admin to reset]",
+    )
+    return {"status": "success", "sent": sent, "recipient": admin.email}
 
 
 @router.get(

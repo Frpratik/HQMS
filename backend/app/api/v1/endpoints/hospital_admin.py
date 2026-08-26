@@ -262,7 +262,55 @@ async def invite_staff(
     await db.commit()
     await db.refresh(new_staff)
 
+    # Asynchronously dispatch staff invitation email with credentials
+    from app.domain.notifications.email_service import EmailService
+    hospital = await db.scalar(select(Hospital).where(Hospital.id == target_hospital_id))
+    try:
+        await EmailService.send_staff_invitation(
+            staff_email=new_staff.email,
+            staff_name=new_staff.full_name,
+            role=new_staff.role.value,
+            hospital_name=hospital.name if hospital else "Hospital",
+            temp_password=payload.password,
+        )
+    except Exception as e:
+        pass
+
     return StaffItemOut.model_validate(new_staff)
+
+
+@router.post("/staff/{user_id}/resend-invite", summary="Resend Staff Invitation Email")
+async def resend_staff_invite(
+    user_id: uuid.UUID,
+    hospital_id: uuid.UUID | None = Query(None),
+    current_user: StaffUser = Depends(require_roles(UserRole.HOSPITAL_ADMIN, UserRole.SUPER_ADMIN)),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """Dispatches a fresh invitation & login credentials email to a Doctor or Receptionist."""
+    from app.domain.notifications.email_service import EmailService
+
+    target_hospital_id = _get_target_hospital_id(current_user, hospital_id)
+    staff = await db.scalar(
+        select(StaffUser).where(
+            and_(
+                StaffUser.id == user_id,
+                StaffUser.hospital_id == target_hospital_id,
+            )
+        )
+    )
+    if not staff:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Staff user not found in this hospital")
+
+    hospital = await db.scalar(select(Hospital).where(Hospital.id == target_hospital_id))
+
+    sent = await EmailService.send_staff_invitation(
+        staff_email=staff.email,
+        staff_name=staff.full_name,
+        role=staff.role.value,
+        hospital_name=hospital.name if hospital else "Hospital",
+        temp_password="[Configured by Administrator - contact Hospital Admin to reset]",
+    )
+    return {"status": "success", "sent": sent, "recipient": staff.email}
 
 
 @router.post("/queues", response_model=QueueItemOut, status_code=status.HTTP_201_CREATED, summary="Create OPD Live Queue")
