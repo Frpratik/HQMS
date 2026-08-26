@@ -10,12 +10,8 @@ import {
   ArrowRight,
   AlertCircle,
   Building2,
-  Stethoscope,
-  Users,
   Eye,
   EyeOff,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 import { api } from "@/lib/api";
 
@@ -29,7 +25,6 @@ export default function StaffLoginPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showDemoLogins, setShowDemoLogins] = useState(false);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,99 +49,100 @@ export default function StaffLoginPage() {
     }
   };
 
-  const fillDemo = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-  };
-
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 text-slate-900 font-sans antialiased selection:bg-emerald-500 selection:text-white">
       {/* Brand Header */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <Link href="/" className="inline-flex items-center space-x-3 mb-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-black shadow-xs">
-            <Activity className="w-5 h-5" />
+        <Link
+          href="/"
+          className="inline-flex items-center justify-center space-x-2.5 mb-6 group transition"
+        >
+          <div className="w-10 h-10 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xs group-hover:scale-105 transition">
+            <Building2 className="w-5 h-5 text-emerald-400" />
           </div>
-          <span className="text-2xl font-black tracking-tight text-slate-950">HQMS</span>
+          <span className="font-extrabold text-xl tracking-tight text-slate-950">
+            HQMS<span className="text-emerald-700">.</span>
+          </span>
         </Link>
-        <h2 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
-          Hospital Workstation Sign In
+
+        <h2 className="text-2xl font-black text-slate-950 tracking-tight">
+          Clinical Station Sign In
         </h2>
-        <p className="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
-          Sign in with your hospital-issued credentials (Doctor, Receptionist, or Hospital Administrator)
+        <p className="mt-1 text-xs text-slate-500 font-medium">
+          Access your Doctor, Receptionist, or Administrator console
         </p>
       </div>
 
-      {/* Main Form Container */}
-      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md px-4">
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm">
-          {/* Error Alert */}
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4">
+        <div className="bg-white py-8 px-6 sm:px-10 border border-slate-200/80 rounded-3xl shadow-sm">
           {error && (
-            <div className="mb-5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-start space-x-2.5 animate-fade-in">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{error}</span>
+            <div className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200/80 flex items-start space-x-3 text-rose-900 text-xs animate-shake">
+              <AlertCircle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
+              <span className="font-semibold">{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSignIn} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Hospital Work Email
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Staff Email Address
               </label>
-              <div className="relative">
+              <div className="relative rounded-2xl shadow-2xs">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                   <Mail className="w-4 h-4" />
                 </div>
                 <input
                   type="email"
                   required
+                  placeholder="doctor@hospital.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="doctor@hospital.com or reception@hospital.com"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs font-semibold transition"
+                  className="block w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-2xl text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
                 />
               </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
                   Password
                 </label>
+                <span className="text-[11px] font-semibold text-slate-400">
+                  Managed by Hospital Admin
+                </span>
               </div>
-              <div className="relative">
+              <div className="relative rounded-2xl shadow-2xs">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
                   type={showPassword ? "text" : "password"}
                   required
+                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs font-semibold transition"
+                  className="block w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-300 rounded-2xl text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition font-mono"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-700 transition"
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-xs pt-1">
-              <label className="flex items-center space-x-2 cursor-pointer text-slate-600">
+            <div className="flex items-center justify-between pt-1">
+              <label className="flex items-center space-x-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 text-emerald-600 rounded-md border-slate-300 focus:ring-emerald-500"
+                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 transition"
                 />
-                <span className="font-medium">Remember my station</span>
+                <span className="text-xs font-medium text-slate-600">Remember workstation</span>
               </label>
-              <span className="text-slate-400 text-[11px]">Protected by 256-bit TLS</span>
             </div>
 
             <button
@@ -167,61 +163,6 @@ export default function StaffLoginPage() {
               )}
             </button>
           </form>
-
-          {/* Discreet Developer / Reviewer Quick-Logins */}
-          <div className="mt-8 pt-5 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={() => setShowDemoLogins(!showDemoLogins)}
-              className="w-full flex items-center justify-between text-xs text-slate-500 hover:text-slate-900 font-semibold py-1 transition"
-            >
-              <div className="flex items-center space-x-2">
-                <Building2 className="w-4 h-4 text-emerald-600" />
-                <span>Test Credentials Reference</span>
-              </div>
-              {showDemoLogins ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-
-            {showDemoLogins && (
-              <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-left animate-fade-in">
-                <button
-                  type="button"
-                  onClick={() => fillDemo("doctor@hospital.com", "Doctor123!")}
-                  className="p-2.5 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-xl transition text-left"
-                >
-                  <div className="flex items-center space-x-1.5 mb-0.5">
-                    <Stethoscope className="w-3.5 h-3.5 text-emerald-700" />
-                    <span className="text-[11px] font-bold text-slate-900">Dr. Sharma</span>
-                  </div>
-                  <span className="text-[10px] text-slate-500 block truncate font-mono">doctor@hospital.com</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => fillDemo("reception@hospital.com", "Recep123!")}
-                  className="p-2.5 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-xl transition text-left"
-                >
-                  <div className="flex items-center space-x-1.5 mb-0.5">
-                    <Users className="w-3.5 h-3.5 text-blue-700" />
-                    <span className="text-[11px] font-bold text-slate-900">Reception</span>
-                  </div>
-                  <span className="text-[10px] text-slate-500 block truncate font-mono">reception@hospital.com</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => fillDemo("admin@apex.com", "Admin123!")}
-                  className="p-2.5 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-xl transition text-left"
-                >
-                  <div className="flex items-center space-x-1.5 mb-0.5">
-                    <Building2 className="w-3.5 h-3.5 text-purple-700" />
-                    <span className="text-[11px] font-bold text-slate-900">Hospital Admin</span>
-                  </div>
-                  <span className="text-[10px] text-slate-500 block truncate font-mono">admin@apex.com</span>
-                </button>
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>
