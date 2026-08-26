@@ -175,8 +175,24 @@ def create_application() -> FastAPI:
     from app.websockets.router import ws_router
     application.include_router(ws_router)
 
-    @application.get("/", tags=["Root"])
+    from fastapi.responses import JSONResponse
+    from app.domain.queue.state_machine import InvalidStateTransitionError
 
+    @application.exception_handler(InvalidStateTransitionError)
+    async def state_transition_exception_handler(request, exc: InvalidStateTransitionError):
+        return JSONResponse(
+            status_code=400,
+            content={"detail": str(exc)},
+        )
+
+    @application.exception_handler(ValueError)
+    async def value_error_exception_handler(request, exc: ValueError):
+        return JSONResponse(
+            status_code=400,
+            content={"detail": str(exc)},
+        )
+
+    @application.get("/", tags=["Root"])
     async def root():
         return {
             "name": settings.PROJECT_NAME,

@@ -24,23 +24,27 @@ class QueueStateMachine:
         TokenStatus.WAITING: {
             TokenStatus.READY,
             TokenStatus.AWAY,
+            TokenStatus.SKIPPED,
             TokenStatus.CANCELLED,
             TokenStatus.TRANSFERRED,
         },
         TokenStatus.READY: {
             TokenStatus.CALLED,
             TokenStatus.AWAY,
+            TokenStatus.SKIPPED,
             TokenStatus.CANCELLED,
             TokenStatus.TRANSFERRED,
         },
         TokenStatus.AWAY: {
             TokenStatus.RETURNING,
             TokenStatus.READY,
+            TokenStatus.SKIPPED,
             TokenStatus.CANCELLED,
         },
         TokenStatus.RETURNING: {
             TokenStatus.READY,
             TokenStatus.AWAY,
+            TokenStatus.SKIPPED,
             TokenStatus.CANCELLED,
         },
         TokenStatus.CALLED: {
@@ -49,10 +53,13 @@ class QueueStateMachine:
             TokenStatus.MISSED,
             TokenStatus.SKIPPED,
             TokenStatus.READY,  # Return to ready on recall reset
+            TokenStatus.CANCELLED,
         },
-
         TokenStatus.SERVING: {
             TokenStatus.COMPLETED,
+            TokenStatus.SKIPPED,
+            TokenStatus.MISSED,
+            TokenStatus.READY,
             TokenStatus.CANCELLED,
         },
         TokenStatus.MISSED: {
