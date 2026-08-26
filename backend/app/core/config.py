@@ -102,15 +102,7 @@ class Settings(BaseSettings):
         return []
 
     # Notification Providers
-    NOTIFICATION_PROVIDER: str = "mock"  # mock | twilio | fast2sms | whatsapp
-    TWILIO_ACCOUNT_SID: str | None = None
-    TWILIO_AUTH_TOKEN: str | None = None
-    TWILIO_FROM_NUMBER: str | None = None
-
-    FAST2SMS_API_KEY: str | None = None
-
-    WHATSAPP_API_TOKEN: str | None = None
-    WHATSAPP_PHONE_NUMBER_ID: str | None = None
+    NOTIFICATION_PROVIDER: str = "mock"
 
     # Email & SMTP Settings
     SMTP_HOST: str | None = None

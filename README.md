@@ -22,7 +22,6 @@
 - **🩺 1-Click Doctor Workstation**: Fast consultation flow (`CALL PATIENT`, `Start Serving`, `Complete`, `Skip`, `Did Not Appear`). Automatically resumes paused queues when calling patients.
 - **🖨️ Receptionist Walk-In Desk**: Instant patient registration (<5 seconds), priority classification (`Normal`, `High`, `Emergency`), and thermal-formatted printable token slips with QR codes.
 - **📺 Public TV Waiting Board**: High-contrast, privacy-safe display (`/display/:id`) for waiting area wall-mounted screens with hospital tenant branding and live queue tickers.
-- **💬 Meta WhatsApp Cloud API Ready**: Integrated with Meta Graph API for free 1,000 monthly patient messaging conversations.
 - **🔒 Deterministic Queue Engine & FSM**: Finite State Machine with pessimistic database locking (`with_for_update`) guarantees zero sequence collisions or race conditions under high concurrent staff actions.
 - **⚡ Namespaced WebSocket Infrastructure**: Real-time broadcast engine syncing Doctors, Receptionists, TV Displays, and Mobile Trackers instantly.
 
@@ -143,13 +142,8 @@ SMTP_PORT=587
 SMTP_USER=your_email@gmail.com
 SMTP_PASSWORD=your_gmail_app_password
 SMTP_TLS=true
-EMAILS_FROM_EMAIL=your_email@gmail.com
-EMAILS_FROM_NAME="HQMS Healthcare Network"
-
-# Meta WhatsApp Cloud API (Free 1,000 conversations/month)
-NOTIFICATION_PROVIDER=whatsapp
-WHATSAPP_API_TOKEN=your_meta_token_here
-WHATSAPP_PHONE_NUMBER_ID=your_phone_id_here
+# Notifications
+NOTIFICATION_PROVIDER=mock
 ```
 
 ---
