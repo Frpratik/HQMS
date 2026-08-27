@@ -32,9 +32,11 @@ class EmailService:
         # 1. SMTP Dispatch (e.g. Gmail SMTP, AWS SES, Custom SMTP)
         if settings.SMTP_HOST and settings.SMTP_USER and settings.SMTP_PASSWORD:
             try:
+                # If using Gmail SMTP, From address must match the authenticated user
+                from_email = settings.SMTP_USER if ("gmail" in (settings.SMTP_HOST or "").lower() or not settings.EMAILS_FROM_EMAIL or "hqms.health" in settings.EMAILS_FROM_EMAIL) else settings.EMAILS_FROM_EMAIL
                 msg = MIMEMultipart("alternative")
                 msg["Subject"] = subject
-                msg["From"] = f"{settings.EMAILS_FROM_NAME} <{settings.EMAILS_FROM_EMAIL}>"
+                msg["From"] = f"{settings.EMAILS_FROM_NAME} <{from_email}>"
                 msg["To"] = to_email
 
                 if text_content:
@@ -45,12 +47,12 @@ class EmailService:
                     if settings.SMTP_TLS:
                         server.starttls()
                     server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-                    server.sendmail(settings.EMAILS_FROM_EMAIL, to_email, msg.as_string())
+                    server.sendmail(from_email, to_email, msg.as_string())
 
-                logger.info(f"[Gmail SMTP] Successfully dispatched email to {to_email}: {subject}")
+                logger.info(f"[SMTP Dispatch] Successfully dispatched email to {to_email}: {subject}")
                 return True
             except Exception as e:
-                logger.error(f"[Gmail SMTP] Exception during dispatch: {e}")
+                logger.error(f"[SMTP Dispatch Error] Failed to dispatch email to {to_email}: {e}", exc_info=True)
 
         # 2. Resend API Dispatch
         if settings.RESEND_API_KEY:
