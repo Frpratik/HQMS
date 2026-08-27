@@ -278,19 +278,19 @@ async def invite_staff(
     await db.commit()
     await db.refresh(new_staff)
 
-    # Asynchronously dispatch staff invitation email with credentials
+    # Asynchronously dispatch staff invitation email with credentials in background
+    import asyncio
     from app.domain.notifications.email_service import EmailService
     hospital = await db.scalar(select(Hospital).where(Hospital.id == target_hospital_id))
-    try:
-        await EmailService.send_staff_invitation(
+    asyncio.create_task(
+        EmailService.send_staff_invitation(
             staff_email=new_staff.email,
             staff_name=new_staff.full_name,
             role=new_staff.role.value,
             hospital_name=hospital.name if hospital else "Hospital",
             temp_password=payload.password,
         )
-    except Exception as e:
-        pass
+    )
 
     return StaffItemOut.model_validate(new_staff)
 

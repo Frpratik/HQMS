@@ -140,17 +140,17 @@ async def provision_hospital(
     await db.commit()
     await db.refresh(hospital)
 
-    # 9. Asynchronously dispatch welcome email with credentials
+    # 9. Asynchronously dispatch welcome email in background task
+    import asyncio
     from app.domain.notifications.email_service import EmailService
-    try:
-        await EmailService.send_hospital_admin_welcome(
+    asyncio.create_task(
+        EmailService.send_hospital_admin_welcome(
             admin_email=admin_user.email,
             admin_name=admin_user.full_name,
             hospital_name=hospital.name,
             temp_password=hospital_in.admin_password,
         )
-    except Exception as e:
-        pass
+    )
 
     return {
         "id": hospital.id,

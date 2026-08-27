@@ -43,16 +43,20 @@ class EmailService:
                     msg.attach(MIMEText(text_content, "plain"))
                 msg.attach(MIMEText(html_content, "html"))
 
-                with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-                    if settings.SMTP_TLS:
-                        server.starttls()
-                    server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-                    server.sendmail(from_email, to_email, msg.as_string())
+                def _sync_smtp_dispatch():
+                    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=8.0) as server:
+                        if settings.SMTP_TLS:
+                            server.starttls()
+                        server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                        server.sendmail(from_email, to_email, msg.as_string())
+
+                import asyncio
+                await asyncio.to_thread(_sync_smtp_dispatch)
 
                 logger.info(f"[SMTP Dispatch] Successfully dispatched email to {to_email}: {subject}")
                 return True
             except Exception as e:
-                logger.error(f"[SMTP Dispatch Error] Failed to dispatch email to {to_email}: {e}", exc_info=True)
+                logger.error(f"[SMTP Dispatch Error] Failed to dispatch email to {to_email}: {e}")
 
         # 2. Resend API Dispatch
         if settings.RESEND_API_KEY:
